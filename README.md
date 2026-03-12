@@ -1,30 +1,104 @@
-# SmartTriage
-# SmartTriage ER Optimizer 🏥
+# SmartTriage ER Optimizer
 
-[cite_start]**Track:** Healthcare Tech [cite: 2]  
-[cite_start]**Challenge:** Algorithmic ER Patient Scheduling [cite: 6]
+A single-file web application for scheduling ER patients across three doctors, minimizing total risk.
 
-## 📝 Project Overview
-[cite_start]SmartTriage is an algorithmic scheduling system designed to optimize Emergency Room operations[cite: 6]. [cite_start]By assigning patients to specific doctors (Trauma, Cardio, or General), the system generates a chronological treatment schedule aimed at minimizing the **Total ER Risk Score**[cite: 6, 13].
+---
 
-## ⚙️ Domain Logic (The "Contract")
-The system strictly adheres to the following mandatory simulation rules:
+## Algorithm
 
-### **1. [cite_start]Specialized Medical Staff** [cite: 17]
-* **Doctor_T (TRAUMA):** Only treats TRAUMA patients[cite: 18, 20].
-* **Doctor_C (CARDIO):** Only treats CARDIO patients[cite: 18, 21].
-* **Doctor_G (GENERAL):** Can treat TRAUMA, CARDIO, or GENERAL patients[cite: 18, 22].
-* **Capacity:** Each doctor treats one patient at a time; treatments cannot be interrupted[cite: 23, 39].
+*Phase 1 — Priority Greedy Scheduling*
 
-### **2. [cite_start]Risk Calculation** [cite: 46]
-[cite_start]Patient risk is determined by severity (1-5) and time spent waiting in the pool[cite: 30, 48]:
-* [cite_start]`waiting_time = treatment_start_time − arrival_time` [cite: 48]
-* `patient_risk = severity × waiting_time` [cite: 48]
-* [cite_start]**Goal:** Minimize the sum of all `patient_risk` values[cite: 49].
+Each patient is scored when a doctor becomes free:
 
-## 🚀 Algorithmic Strategy
-[cite_start]To minimize total risk, we implemented a **[Insert your strategy, e.g., Greedy Heuristic / Lookahead]** approach[cite: 7]. 
 
-* [cite_start]**Priority Queuing:** Patients are prioritized based on severity and arrival time to prevent high-severity "risk spikes"[cite: 108].
-* **Doctor Allocation:** The algorithm prioritizes using specialized doctors (T/C) first, keeping the Generalist (G) available for any incoming high-severity case regardless of type[cite: 111].
-* [cite_start]**Wait-Time Management:** We balance "treatment time" against "severity" to ensure quick cases don't hold up critical care[cite: 109].
+score = severity × 1000 + wait_so_far × severity × 2 − treatment_time × 0.1
+
+
+Highest score is assigned first. Doctor_G (GENERAL) defers to specialists if they free up within 3 minutes and patient severity ≤ 3.
+
+*Phase 2 — Local Swap Improvement (3 passes)*
+
+Tries swapping doctor assignments between patient pairs. Accepts swaps that reduce total risk. Rebuilds the timeline after each accepted swap.
+
+*Complexity:* O(n² log n) + O(k × n²) where k ≤ 3
+
+---
+
+## Doctors
+
+| Doctor ID | Specialization | Can Treat |
+|-----------|---------------|-----------|
+| Doctor_T  | TRAUMA        | TRAUMA only |
+| Doctor_C  | CARDIO        | CARDIO only |
+| Doctor_G  | GENERAL       | TRAUMA, CARDIO, GENERAL |
+
+---
+
+## Input Format
+
+patients.csv
+
+
+patient_id,severity,arrival_time,treatment_time,required_specialization
+P1,5,0,8,TRAUMA
+P2,3,2,4,CARDIO
+P3,4,3,6,TRAUMA
+
+
+- severity: 1–5 (5 = critical)
+- arrival_time: integer minutes ≥ 0
+- treatment_time: integer minutes ≥ 1
+- required_specialization: TRAUMA / CARDIO / GENERAL
+
+---
+
+## Output Format
+
+submission.json
+
+json
+{
+  "treatments": [
+    { "patient_id": "P1", "doctor_id": "Doctor_T", "start_time": 0, "end_time": 8 },
+    { "patient_id": "P2", "doctor_id": "Doctor_C", "start_time": 2, "end_time": 6 }
+  ],
+  "estimated_total_risk": 20
+}
+
+
+Sorted by start_time. Risk = Σ (severity × wait_time) per patient.
+
+---
+
+## Features
+
+- CSV upload → auto-schedules and renders results
+- Live doctor status (FREE / TREATING) with progress bar
+- ER timeline playback with idle gap visualization
+- Risk heatmap per patient
+- Auto charts: severity distribution, arrival vs treatment time
+- Export: submission.json + detailed smarttriage_report.json
+- Login with persistent session (stays logged in on refresh)
+- Dark / light theme
+
+---
+
+## Usage
+
+1. Open smarttriage_v5.html in any browser — no install needed
+2. Sign in with your name and role
+3. Upload patients.csv or add patients manually
+4. Click *Run SmartTriage*
+5. Download submission.json from the Export tab
+
+---
+
+## Risk Calculation
+
+
+waiting_time = start_time − arrival_time
+patient_risk = severity × waiting_time
+total_risk   = Σ patient_risk
+
+
+Lower total risk = better schedule.
