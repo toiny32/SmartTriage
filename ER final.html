@@ -1,0 +1,1434 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SmartTriage — ER Optimizer</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@300;400;500;700&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,300&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#06080f;--bg2:#0a0e1a;--bg3:#0f1525;--bg4:#151d30;
+  --border:#1a2238;--border2:#222d45;--border3:#2e3f5c;
+  --text:#e2ecff;--text2:#6b84aa;--text3:#2e3f5c;
+  --accent:#3d9bff;--accent-dim:rgba(61,155,255,.1);--accent-glow:0 0 28px rgba(61,155,255,.25);
+  --red:#ff4466;--red-dim:rgba(255,68,102,.1);
+  --green:#00dda0;--green-dim:rgba(0,221,160,.1);
+  --amber:#f5a623;--amber-dim:rgba(245,166,35,.1);
+  --purple:#a78bfa;--purple-dim:rgba(167,139,250,.1);
+  --card:#090d18;--card2:#0d1220;
+}
+[data-theme="light"]{
+  --bg:#f0f4ff;--bg2:#fff;--bg3:#e8edf8;--bg4:#dde4f5;
+  --border:#cdd6ed;--border2:#b8c4df;--border3:#8fa3cc;
+  --text:#0d1530;--text2:#4a5e85;--text3:#8fa3cc;
+  --accent:#1a6fd4;--accent-dim:rgba(26,111,212,.08);--accent-glow:0 2px 14px rgba(26,111,212,.18);
+  --red:#e0193c;--red-dim:rgba(224,25,60,.08);
+  --green:#00997a;--green-dim:rgba(0,153,122,.08);
+  --amber:#c47b00;--amber-dim:rgba(196,123,0,.1);
+  --purple:#6d28d9;--purple-dim:rgba(109,40,217,.08);
+  --card:#fff;--card2:#f6f9ff;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Fraunces',Georgia,serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;transition:background .3s,color .3s;}
+body::after{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(61,155,255,.012) 1px,transparent 1px),linear-gradient(90deg,rgba(61,155,255,.012) 1px,transparent 1px);background-size:48px 48px;pointer-events:none;z-index:0;}
+::-webkit-scrollbar{width:4px;}::-webkit-scrollbar-track{background:var(--bg);}::-webkit-scrollbar-thumb{background:var(--border3);border-radius:2px;}
+
+/* LOGIN */
+#login-screen{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:1000;transition:opacity .5s,transform .5s;}
+#login-screen.exit{opacity:0;transform:scale(.96) translateY(-20px);pointer-events:none;}
+.login-wrap{width:min(460px,92vw);position:relative;z-index:1;}
+.login-glow{position:absolute;width:340px;height:340px;background:radial-gradient(circle,rgba(61,155,255,.1) 0%,transparent 70%);left:50%;top:50%;transform:translate(-50%,-50%);pointer-events:none;}
+.login-logo{text-align:center;margin-bottom:28px;}
+.login-cross{width:52px;height:52px;background:var(--red);border-radius:12px;margin:0 auto 14px;position:relative;display:flex;align-items:center;justify-content:center;box-shadow:0 0 40px rgba(255,68,102,.3);}
+.login-cross::before,.login-cross::after{content:'';position:absolute;background:#fff;border-radius:3px;}
+.login-cross::before{width:26px;height:6px;}.login-cross::after{width:6px;height:26px;}
+.login-title{font-family:'Syne',sans-serif;font-weight:800;font-size:2rem;letter-spacing:-1px;}
+.login-sub{font-family:'IBM Plex Mono',monospace;font-size:.63rem;color:var(--text3);letter-spacing:3px;text-transform:uppercase;margin-top:6px;}
+.login-card{background:var(--card);border:1px solid var(--border2);border-radius:20px;padding:32px;box-shadow:0 24px 80px rgba(0,0,0,.4);}
+.login-card h2{font-family:'Syne',sans-serif;font-weight:700;font-size:1.1rem;margin-bottom:6px;}
+.login-card p{font-family:'IBM Plex Mono',monospace;font-size:.68rem;color:var(--text2);margin-bottom:22px;}
+.login-field{display:flex;flex-direction:column;gap:7px;margin-bottom:14px;}
+.login-field label{font-family:'IBM Plex Mono',monospace;font-size:.6rem;letter-spacing:2px;text-transform:uppercase;color:var(--text3);}
+.login-input{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 13px;color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:.84rem;width:100%;outline:none;transition:border-color .2s,box-shadow .2s;-webkit-appearance:none;}
+.login-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(61,155,255,.12);}
+.login-input::placeholder{color:var(--text3);}
+.login-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.login-select{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 13px;color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:.82rem;width:100%;outline:none;cursor:pointer;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath fill='%236b84aa' d='M5 6L0 0h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:30px;transition:border-color .2s;}
+.login-select:focus{border-color:var(--accent);outline:none;}
+.login-divider{height:1px;background:var(--border);margin:18px 0;}
+.login-btn{width:100%;padding:13px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-family:'IBM Plex Mono',monospace;font-size:.82rem;font-weight:700;letter-spacing:1px;cursor:pointer;transition:all .2s;box-shadow:var(--accent-glow);}
+.login-btn:hover{transform:translateY(-1px);box-shadow:0 0 40px rgba(61,155,255,.35);}
+.login-hint{text-align:center;margin-top:12px;font-family:'IBM Plex Mono',monospace;font-size:.6rem;color:var(--text3);}
+
+/* APP */
+#app{display:none;min-height:100vh;position:relative;z-index:1;}
+#app.visible{display:block;animation:appIn .5s ease;}
+@keyframes appIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+/* HEADER */
+header{position:sticky;top:0;z-index:200;height:62px;padding:0 24px;display:flex;align-items:center;justify-content:space-between;background:rgba(9,13,24,.95);border-bottom:1px solid var(--border);backdrop-filter:blur(20px);}
+[data-theme="light"] header{background:rgba(255,255,255,.95);}
+.logo{display:flex;align-items:center;gap:12px;}
+.logo-cross{width:30px;height:30px;background:var(--red);border-radius:6px;position:relative;display:flex;align-items:center;justify-content:center;box-shadow:0 0 20px rgba(255,68,102,.3);flex-shrink:0;}
+.logo-cross::before,.logo-cross::after{content:'';position:absolute;background:#fff;border-radius:2px;}
+.logo-cross::before{width:14px;height:4px;}.logo-cross::after{width:4px;height:14px;}
+.logo-name{font-family:'Syne',sans-serif;font-weight:800;font-size:1.2rem;letter-spacing:-0.5px;}
+.logo-ver{font-family:'IBM Plex Mono',monospace;font-size:.58rem;color:var(--text3);letter-spacing:2px;background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:2px 6px;}
+.header-right{display:flex;align-items:center;gap:12px;}
+.live-badge{display:flex;align-items:center;gap:6px;font-family:'IBM Plex Mono',monospace;font-size:.62rem;color:var(--green);letter-spacing:1.5px;}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:blink 2s infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+.theme-btn{width:70px;height:30px;border:1px solid var(--border2);background:var(--bg3);border-radius:15px;cursor:pointer;display:flex;align-items:center;padding:3px;position:relative;transition:border-color .2s;}
+.theme-btn:hover{border-color:var(--accent);}
+.theme-knob{width:22px;height:22px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:12px;transition:transform .3s;}
+[data-theme="light"] .theme-knob{transform:translateX(38px);}
+.theme-labels{position:absolute;left:0;right:0;display:flex;justify-content:space-between;padding:0 7px;font-family:'IBM Plex Mono',monospace;font-size:.5rem;color:var(--text3);pointer-events:none;}
+.user-btn{display:flex;align-items:center;gap:9px;background:var(--bg3);border:1px solid var(--border2);border-radius:24px;padding:5px 12px 5px 5px;cursor:pointer;transition:all .2s;}
+.user-btn:hover{border-color:var(--accent);}
+.user-avatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:700;font-size:.8rem;color:#fff;flex-shrink:0;}
+.user-btn-name{font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:var(--text2);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
+/* PROFILE PANEL */
+.profile-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(4px);z-index:500;opacity:0;pointer-events:none;transition:opacity .3s;}
+.profile-overlay.open{opacity:1;pointer-events:all;}
+.profile-panel{position:fixed;top:0;right:0;width:min(380px,94vw);height:100vh;background:var(--card);border-left:1px solid var(--border2);z-index:501;transform:translateX(100%);transition:transform .35s cubic-bezier(.4,0,.2,1);overflow-y:auto;display:flex;flex-direction:column;}
+.profile-panel.open{transform:translateX(0);}
+.profile-header{padding:24px 24px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.profile-header h2{font-family:'Syne',sans-serif;font-weight:700;font-size:1rem;}
+.profile-close{width:28px;height:28px;border-radius:50%;background:var(--bg3);border:none;cursor:pointer;color:var(--text2);font-size:.9rem;display:flex;align-items:center;justify-content:center;transition:all .2s;}
+.profile-close:hover{background:var(--red-dim);color:var(--red);}
+.profile-body{padding:24px;flex:1;}
+.profile-hero{display:flex;flex-direction:column;align-items:center;padding:20px 0 18px;border-bottom:1px solid var(--border);margin-bottom:20px;}
+.profile-avatar-lg{width:76px;height:76px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:1.9rem;color:#fff;margin-bottom:12px;box-shadow:0 0 32px rgba(0,0,0,.3);position:relative;}
+.profile-avatar-lg .online-ring{position:absolute;inset:-3px;border-radius:50%;border:2px solid var(--green);animation:pulse-ring 3s ease infinite;}
+@keyframes pulse-ring{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.04)}}
+.profile-full-name{font-family:'Syne',sans-serif;font-weight:700;font-size:1.3rem;letter-spacing:-0.5px;margin-bottom:4px;text-align:center;}
+.profile-role-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:20px;font-family:'IBM Plex Mono',monospace;font-size:.63rem;letter-spacing:1px;margin-bottom:6px;}
+.profile-dept{font-family:'IBM Plex Mono',monospace;font-size:.66rem;color:var(--text2);}
+.profile-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:18px;}
+.ps-item{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:11px 8px;text-align:center;}
+.ps-num{font-family:'Syne',sans-serif;font-weight:700;font-size:1.3rem;color:var(--accent);margin-bottom:2px;}
+.ps-lbl{font-family:'IBM Plex Mono',monospace;font-size:.54rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);}
+.profile-info-list{display:flex;flex-direction:column;}
+.pi-row{display:flex;align-items:flex-start;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);}
+.pi-row:last-child{border-bottom:none;}
+.pi-key{font-family:'IBM Plex Mono',monospace;font-size:.6rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);padding-top:2px;}
+.pi-val{font-family:'IBM Plex Mono',monospace;font-size:.76rem;color:var(--text);text-align:right;max-width:180px;}
+.profile-edit-btn{width:100%;margin-top:18px;padding:11px;background:var(--accent-dim);border:1px solid rgba(61,155,255,.3);border-radius:10px;color:var(--accent);font-family:'IBM Plex Mono',monospace;font-size:.74rem;font-weight:700;cursor:pointer;transition:all .2s;}
+.profile-edit-btn:hover{background:rgba(61,155,255,.18);}
+.profile-logout-btn{width:100%;margin-top:8px;padding:11px;background:var(--red-dim);border:1px solid rgba(255,68,102,.25);border-radius:10px;color:var(--red);font-family:'IBM Plex Mono',monospace;font-size:.74rem;font-weight:700;cursor:pointer;transition:all .2s;}
+.profile-logout-btn:hover{background:rgba(255,68,102,.2);}
+
+/* NAV */
+.nav{display:flex;gap:0;background:var(--bg2);border-bottom:1px solid var(--border);padding:0 24px;overflow-x:auto;}
+.nav-tab{padding:14px 18px;border:none;border-bottom:2px solid transparent;background:none;color:var(--text3);font-family:'IBM Plex Mono',monospace;font-size:.7rem;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;transition:all .2s;white-space:nowrap;display:flex;align-items:center;gap:8px;}
+.nav-tab:hover{color:var(--text2);}
+.nav-tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+.nav-tab.green-tab.active{color:var(--green);border-bottom-color:var(--green);}
+.nav-tab.red-tab.active{color:var(--red);border-bottom-color:var(--red);}
+.nav-tab .badge{background:var(--accent-dim);border:1px solid rgba(61,155,255,.25);border-radius:10px;padding:1px 6px;font-size:.58rem;color:var(--accent);}
+
+main{max-width:1400px;margin:0 auto;padding:28px 24px;position:relative;z-index:1;}
+
+/* CARDS */
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:22px;margin-bottom:18px;}
+.card-title{display:flex;align-items:center;gap:10px;font-family:'IBM Plex Mono',monospace;font-size:.66rem;letter-spacing:2.5px;text-transform:uppercase;color:var(--text3);margin-bottom:18px;}
+.card-title span{color:var(--accent);}
+.card-title::after{content:'';flex:1;height:1px;background:var(--border);}
+
+/* FORMS */
+.form-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;}
+.fg{display:flex;flex-direction:column;gap:6px;}
+.fg label{font-family:'IBM Plex Mono',monospace;font-size:.62rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);display:flex;align-items:center;gap:6px;}
+.rq{color:var(--red);}.hint{color:var(--text3);font-size:.58rem;font-style:italic;letter-spacing:0;}
+input,select{background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:9px 12px;font-family:'IBM Plex Mono',monospace;font-size:.82rem;width:100%;transition:border-color .2s,box-shadow .2s;outline:none;-webkit-appearance:none;}
+input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(61,155,255,.1);}
+select{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath fill='%236b84aa' d='M5 6L0 0h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:30px;}
+input::placeholder{color:var(--text3);}
+.sev-meter{display:flex;gap:5px;margin-top:5px;}
+.sev-seg{flex:1;height:4px;border-radius:2px;background:var(--border);transition:background .2s;}
+.sev-seg.on-1{background:#22c55e;}.sev-seg.on-2{background:#eab308;}.sev-seg.on-3{background:#f97316;}.sev-seg.on-4{background:#ef4444;}.sev-seg.on-5{background:#dc2626;box-shadow:0 0 6px #dc2626;}
+.vitals-box{background:var(--bg3);border:1px solid var(--border);border-left:3px solid var(--red);border-radius:10px;padding:16px;margin-top:14px;}
+.vitals-head{font-family:'IBM Plex Mono',monospace;font-size:.6rem;letter-spacing:2px;text-transform:uppercase;color:var(--red);margin-bottom:12px;display:flex;align-items:center;gap:6px;}
+.vitals-head::before{content:'♥';animation:blink 1.2s infinite;}
+.badge-T{display:inline-flex;align-items:center;background:var(--red-dim);border:1px solid rgba(255,68,102,.25);color:var(--red);border-radius:5px;padding:2px 8px;font-family:'IBM Plex Mono',monospace;font-size:.65rem;font-weight:700;}
+.badge-C{display:inline-flex;align-items:center;background:var(--accent-dim);border:1px solid rgba(61,155,255,.25);color:var(--accent);border-radius:5px;padding:2px 8px;font-family:'IBM Plex Mono',monospace;font-size:.65rem;font-weight:700;}
+.badge-G{display:inline-flex;align-items:center;background:var(--green-dim);border:1px solid rgba(0,221,160,.25);color:var(--green);border-radius:5px;padding:2px 8px;font-family:'IBM Plex Mono',monospace;font-size:.65rem;font-weight:700;}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:8px;border:none;font-family:'IBM Plex Mono',monospace;font-size:.74rem;letter-spacing:1px;cursor:pointer;transition:all .2s;white-space:nowrap;font-weight:700;}
+.btn-accent{background:var(--accent);color:#fff;box-shadow:var(--accent-glow);}
+.btn-accent:hover{transform:translateY(-1px);box-shadow:0 0 36px rgba(61,155,255,.4);}
+.btn-red{background:var(--red-dim);color:var(--red);border:1px solid rgba(255,68,102,.3);}
+.btn-red:hover{background:rgba(255,68,102,.2);}
+.btn-green{background:var(--green);color:#000;box-shadow:0 0 20px rgba(0,221,160,.2);}
+.btn-green:hover{transform:translateY(-1px);}
+.btn-ghost{background:var(--bg3);color:var(--text2);border:1px solid var(--border2);}
+.btn-ghost:hover{border-color:var(--accent);color:var(--accent);}
+.btn-sm{padding:7px 14px;font-size:.67rem;}
+.btn:disabled{opacity:.4;cursor:not-allowed;transform:none!important;}
+.action-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:16px;padding-top:16px;border-top:1px solid var(--border);}
+
+/* TABLE */
+.tbl-wrap{overflow-x:auto;border-radius:10px;border:1px solid var(--border);}
+table{width:100%;border-collapse:collapse;font-size:.82rem;}
+thead tr{background:var(--bg3);border-bottom:1px solid var(--border);}
+th{padding:10px 14px;text-align:left;font-family:'IBM Plex Mono',monospace;font-size:.58rem;letter-spacing:2px;text-transform:uppercase;color:var(--text3);font-weight:400;}
+td{padding:10px 14px;border-bottom:1px solid var(--border);color:var(--text);}
+tbody tr{transition:background .15s;}tbody tr:hover{background:var(--bg3);}tbody tr:last-child td{border-bottom:none;}
+.mono{font-family:'IBM Plex Mono',monospace;}
+
+/* DOCTOR STATUS CARDS */
+.doc-status-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px;}
+.doc-status-card{background:var(--card2);border:1px solid var(--border);border-radius:14px;padding:18px;transition:border-color .3s,box-shadow .3s;}
+.doc-status-card.busy{border-color:rgba(245,166,35,.4);box-shadow:0 0 16px rgba(245,166,35,.1);}
+.doc-status-card.free{border-color:rgba(0,221,160,.4);box-shadow:0 0 16px rgba(0,221,160,.1);}
+.doc-status-card.TRAUMA{border-left:3px solid var(--red);}
+.doc-status-card.CARDIO{border-left:3px solid var(--accent);}
+.doc-status-card.GENERAL{border-left:3px solid var(--green);}
+.doc-card-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.doc-name-lbl{font-family:'Syne',sans-serif;font-weight:800;font-size:1rem;}
+.doc-spec-lbl{font-family:'IBM Plex Mono',monospace;font-size:.58rem;color:var(--text3);letter-spacing:2px;margin-bottom:8px;}
+.doc-status-pill{display:inline-flex;align-items:center;gap:5px;border-radius:20px;padding:4px 10px;font-family:'IBM Plex Mono',monospace;font-size:.62rem;font-weight:700;letter-spacing:1px;}
+.doc-status-pill.free{background:var(--green-dim);color:var(--green);border:1px solid rgba(0,221,160,.3);}
+.doc-status-pill.busy{background:var(--amber-dim);color:var(--amber);border:1px solid rgba(245,166,35,.3);}
+.doc-status-pill .pill-dot{width:5px;height:5px;border-radius:50%;animation:blink 1.5s infinite;}
+.doc-status-pill.free .pill-dot{background:var(--green);}
+.doc-status-pill.busy .pill-dot{background:var(--amber);}
+.doc-current-patient{font-family:'IBM Plex Mono',monospace;font-size:.68rem;color:var(--text2);margin-top:6px;}
+.doc-free-at{font-family:'IBM Plex Mono',monospace;font-size:.65rem;color:var(--text3);margin-top:3px;}
+.doc-progress{width:100%;height:4px;background:var(--bg3);border-radius:2px;overflow:hidden;margin-top:10px;}
+.doc-progress-fill{height:100%;border-radius:2px;transition:width .4s ease;}
+.TRAUMA .doc-progress-fill{background:var(--red);}
+.CARDIO .doc-progress-fill{background:var(--accent);}
+.GENERAL .doc-progress-fill{background:var(--green);}
+
+/* TIMELINE */
+.tl-wrap{overflow-x:auto;padding-bottom:8px;}
+.tl{min-width:700px;}
+.tl-row{display:flex;align-items:center;height:46px;margin-bottom:6px;}
+.tl-lbl{width:100px;flex-shrink:0;font-family:'IBM Plex Mono',monospace;font-size:.63rem;color:var(--text2);padding-right:10px;}
+.tl-track{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:6px;height:38px;position:relative;overflow:hidden;}
+.tl-block{position:absolute;top:3px;height:32px;border-radius:5px;display:flex;align-items:center;padding:0 8px;font-family:'IBM Plex Mono',monospace;font-size:.63rem;font-weight:700;white-space:nowrap;overflow:hidden;cursor:pointer;transition:filter .15s;letter-spacing:.5px;}
+.tl-block:hover{filter:brightness(1.3);}
+.tl-block.sev-critical{background:rgba(255,68,102,.8);color:#fff;border:1px solid var(--red);}
+.tl-block.sev-serious{background:rgba(255,120,60,.8);color:#fff;border:1px solid #ff7840;}
+.tl-block.sev-moderate{background:rgba(245,166,35,.8);color:#000;border:1px solid var(--amber);}
+.tl-block.sev-minor{background:rgba(100,200,80,.8);color:#000;border:1px solid #64c850;}
+.tl-block.sev-minimal{background:rgba(0,221,160,.8);color:#000;border:1px solid var(--green);}
+.tl-idle{position:absolute;top:3px;height:32px;border-radius:5px;background:repeating-linear-gradient(45deg,transparent,transparent 4px,rgba(255,255,255,.04) 4px,rgba(255,255,255,.04) 8px);border:1px dashed var(--border3);display:flex;align-items:center;padding:0 6px;}
+.tl-idle-lbl{font-family:'IBM Plex Mono',monospace;font-size:.55rem;color:var(--text3);}
+.tl-cursor-line{position:absolute;top:0;bottom:0;width:2px;background:var(--amber);z-index:10;pointer-events:none;box-shadow:0 0 8px var(--amber);}
+.playback-bar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:14px;}
+.pb-time{font-family:'IBM Plex Mono',monospace;font-size:.88rem;color:var(--amber);letter-spacing:2px;min-width:80px;}
+.pb-slider{flex:1;min-width:120px;accent-color:var(--amber);}
+
+/* CHART */
+.chart-wrap{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:14px;}
+.chart-title{font-family:'IBM Plex Mono',monospace;font-size:.62rem;letter-spacing:2px;text-transform:uppercase;color:var(--text3);margin-bottom:12px;}
+.chart-canvas-wrap{position:relative;height:180px;}
+
+/* HEATMAP */
+.heatmap-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);}
+.heatmap-row:last-child{border-bottom:none;}
+.hm-bar-wrap{flex:1;height:18px;background:var(--bg3);border-radius:4px;overflow:hidden;}
+.hm-bar{height:100%;border-radius:4px;transition:width .6s ease;display:flex;align-items:center;padding:0 8px;}
+.hm-val{font-family:'IBM Plex Mono',monospace;font-size:.62rem;width:44px;color:var(--text3);}
+.hm-label{font-family:'IBM Plex Mono',monospace;font-size:.62rem;width:58px;text-align:right;}
+
+/* KPI */
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:18px;}
+.kpi{background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center;}
+.kpi-num{font-family:'Syne',sans-serif;font-size:2.1rem;font-weight:800;line-height:1;margin-bottom:4px;transition:color .4s;}
+.kpi-lbl{font-family:'IBM Plex Mono',monospace;font-size:.58rem;letter-spacing:2px;text-transform:uppercase;color:var(--text3);}
+.kpi-num.good{color:var(--green);}.kpi-num.ok{color:var(--amber);}.kpi-num.bad{color:var(--red);}.kpi-num.info{color:var(--accent);}
+
+/* SCORING PANEL */
+.scoring-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;}
+.score-item{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px;display:flex;align-items:center;gap:12px;}
+.score-pts{font-family:'Syne',sans-serif;font-weight:800;font-size:1.6rem;min-width:40px;text-align:center;}
+.score-info{display:flex;flex-direction:column;gap:2px;}
+.score-name{font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:var(--text);}
+.score-sub{font-family:'IBM Plex Mono',monospace;font-size:.6rem;color:var(--text3);}
+
+/* VALIDATE */
+.check-list{display:flex;flex-direction:column;gap:8px;}
+.check-item{display:flex;align-items:flex-start;gap:10px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-family:'IBM Plex Mono',monospace;font-size:.72rem;}
+.check-icon{font-size:1rem;flex-shrink:0;margin-top:1px;}
+.check-text{flex:1;line-height:1.5;}
+.check-detail{color:var(--text3);font-size:.64rem;margin-top:2px;}
+.check-item.pass{border-left:3px solid var(--green);}
+.check-item.fail{border-left:3px solid var(--red);}
+
+/* DROP ZONE */
+.drop-zone{border:2px dashed var(--border2);border-radius:12px;padding:40px;text-align:center;cursor:pointer;transition:all .2s;background:var(--bg2);}
+.drop-zone:hover,.drop-zone.over{border-color:var(--accent);background:var(--accent-dim);box-shadow:var(--accent-glow);}
+.drop-icon{font-size:2.5rem;margin-bottom:12px;}
+.drop-zone h3{font-family:'Syne',sans-serif;font-size:1rem;margin-bottom:6px;}
+.drop-zone p{color:var(--text2);font-size:.8rem;font-family:'IBM Plex Mono',monospace;}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);z-index:500;display:flex;align-items:center;justify-content:center;animation:fadeIn .2s ease;}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.modal{background:var(--card);border:1px solid var(--border2);border-radius:18px;padding:28px;width:min(460px,92vw);max-height:90vh;overflow-y:auto;animation:slideUp .25s ease;}
+@keyframes slideUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+.modal-title{font-family:'Syne',sans-serif;font-weight:800;font-size:1.05rem;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;}
+.modal-close{width:28px;height:28px;border-radius:50%;background:var(--bg3);border:none;cursor:pointer;color:var(--text2);font-size:.9rem;display:flex;align-items:center;justify-content:center;transition:all .2s;}
+.modal-close:hover{background:var(--red-dim);color:var(--red);}
+.modal-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.modal-actions{display:flex;gap:10px;margin-top:20px;justify-content:flex-end;}
+
+/* INFO HINT */
+.info-hint{display:flex;align-items:flex-start;gap:10px;background:var(--accent-dim);border:1px solid rgba(61,155,255,.2);border-radius:10px;padding:12px 16px;font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:var(--text2);margin-bottom:16px;}
+
+/* JSON */
+.json-out{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px;font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:var(--green);max-height:320px;overflow-y:auto;white-space:pre;line-height:1.7;}
+.jk{color:var(--accent);}.js{color:#ffdb70;}.jn{color:#ff79c6;}
+.readme-out{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px;font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--text2);max-height:360px;overflow-y:auto;white-space:pre-wrap;line-height:1.7;}
+
+/* WARN BANNER */
+.warn-banner{display:flex;align-items:center;gap:10px;background:var(--red-dim);border:1px solid rgba(255,68,102,.3);border-radius:10px;padding:12px 16px;font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--red);margin-bottom:14px;}
+.ok-banner{display:flex;align-items:center;gap:10px;background:var(--green-dim);border:1px solid rgba(0,221,160,.3);border-radius:10px;padding:12px 16px;font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--green);margin-bottom:14px;}
+
+/* EMPTY / TOAST */
+.empty{text-align:center;padding:40px;color:var(--text3);}
+.empty .ei{font-size:2.8rem;margin-bottom:12px;opacity:.35;}
+.empty h3{font-family:'Syne',sans-serif;color:var(--text2);margin-bottom:4px;}
+.empty p{font-family:'IBM Plex Mono',monospace;font-size:.7rem;}
+#toasts{position:fixed;bottom:24px;right:24px;z-index:999;display:flex;flex-direction:column;gap:8px;}
+.toast{background:var(--card);border:1px solid var(--border2);border-radius:10px;padding:11px 16px;display:flex;align-items:center;gap:10px;font-family:'IBM Plex Mono',monospace;font-size:.73rem;box-shadow:0 8px 30px rgba(0,0,0,.3);animation:slideIn .25s ease;max-width:320px;}
+.toast.s{border-left:3px solid var(--green);}.toast.e{border-left:3px solid var(--red);}.toast.i{border-left:3px solid var(--accent);}.toast.w{border-left:3px solid var(--amber);}
+@keyframes slideIn{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:translateX(0)}}
+.hidden{display:none!important;}
+@media(max-width:768px){main{padding:16px;}.doc-status-grid{grid-template-columns:1fr;}.kpi-row{grid-template-columns:repeat(2,1fr);}.modal-grid{grid-template-columns:1fr;}.login-row{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-glow"></div>
+  <div class="login-wrap">
+    <div class="login-logo">
+      <div class="login-cross"></div>
+      <div class="login-title">SmartTriage</div>
+      <div class="login-sub">Emergency Room Optimizer</div>
+    </div>
+    <div class="login-card">
+      <h2>Sign in to your workspace</h2>
+      <p>Enter your details to access the ER dashboard</p>
+      <div class="login-row">
+        <div class="login-field"><label>First Name <span style="color:var(--red)">*</span></label><input class="login-input" id="l-fname" placeholder="Dr. Jane" autocomplete="given-name"></div>
+        <div class="login-field"><label>Last Name</label><input class="login-input" id="l-lname" placeholder="Smith" autocomplete="family-name"></div>
+      </div>
+      <div class="login-field"><label>Role / Title</label>
+        <select class="login-select" id="l-role">
+          <option>Attending Physician</option><option>Emergency Medicine Resident</option>
+          <option>Triage Nurse</option><option>Charge Nurse</option>
+          <option>ER Department Head</option><option>Medical Director</option><option>Hospitalist</option>
+        </select>
+      </div>
+      <div class="login-row">
+        <div class="login-field"><label>Department</label>
+          <select class="login-select" id="l-dept">
+            <option>Emergency Medicine</option><option>Trauma Surgery</option><option>Cardiology</option>
+            <option>General Surgery</option><option>Pediatrics</option><option>Internal Medicine</option><option>Critical Care</option>
+          </select>
+        </div>
+        <div class="login-field"><label>Hospital</label><input class="login-input" id="l-hospital" placeholder="City General Hospital"></div>
+      </div>
+      <div class="login-field"><label>Staff ID</label><input class="login-input" id="l-staffid" placeholder="MD-2024-001"></div>
+      <div class="login-divider"></div>
+      <button class="login-btn" onclick="doLogin()">→ Enter Dashboard</button>
+      <div class="login-hint">Demo mode · All data stays local · No password required</div>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <header>
+    <div class="logo">
+      <div class="logo-cross"></div>
+      <span class="logo-name">SmartTriage</span>
+      <span class="logo-ver">v5.0</span>
+    </div>
+    <div class="header-right">
+      <div class="live-badge"><div class="live-dot"></div>SYSTEM ONLINE</div>
+      <div class="theme-btn" id="themeBtn">
+        <div class="theme-knob" id="themeKnob">🌙</div>
+        <div class="theme-labels"><span>D</span><span>L</span></div>
+      </div>
+      <div class="user-btn" onclick="openProfile()">
+        <div class="user-avatar" id="hdr-avatar"></div>
+        <span class="user-btn-name" id="hdr-name">—</span>
+      </div>
+    </div>
+  </header>
+
+  <nav class="nav">
+    <button class="nav-tab active" onclick="gotoTab('dashboard')" id="t-dashboard">🏥 Dashboard</button>
+    <button class="nav-tab" onclick="gotoTab('csv')" id="t-csv">📂 CSV</button>
+    <button class="nav-tab green-tab" onclick="gotoTab('schedule')" id="t-schedule">📊 Schedule <span class="badge" id="sched-badge" style="display:none">0</span></button>
+    <button class="nav-tab" onclick="gotoTab('export')" id="t-export">📦 Export</button>
+  </nav>
+
+  <main>
+
+    <!-- DASHBOARD TAB -->
+    <div id="p-dashboard">
+      <!-- RISK OPTIMIZATION KPI -->
+      <div class="card" id="risk-opt-card" style="display:none">
+        <div class="card-title"><span style="color:var(--red)">RISK</span> Optimization Score</div>
+        <div style="display:flex;align-items:center;gap:24px;flex-wrap:wrap;">
+          <div style="text-align:center;padding:10px 24px;background:var(--bg3);border-radius:12px;border:1px solid var(--border);">
+            <div id="risk-opt-num" style="font-family:'Syne',sans-serif;font-size:3rem;font-weight:800;line-height:1;color:var(--red)">—</div>
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:.58rem;letter-spacing:2px;color:var(--text3);margin-top:4px">TOTAL ER RISK</div>
+          </div>
+          <div style="flex:1;min-width:200px;">
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--text2);margin-bottom:8px;">Risk = Σ (severity × wait_time) per patient</div>
+            <div id="risk-opt-bar-wrap" style="width:100%;height:12px;background:var(--bg3);border-radius:6px;overflow:hidden;margin-bottom:8px;">
+              <div id="risk-opt-bar" style="height:100%;border-radius:6px;background:linear-gradient(90deg,var(--green),var(--amber),var(--red));transition:width .8s ease;width:0%"></div>
+            </div>
+            <div id="risk-opt-grade" style="font-family:'IBM Plex Mono',monospace;font-size:.72rem;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PATIENT INPUT -->
+      <div class="card">
+        <div class="card-title"><span>01</span> Patient Information</div>
+        <div class="form-grid">
+          <div class="fg"><label>Patient Name</label><input id="f-name" type="text" placeholder="e.g. John Doe"></div>
+          <div class="fg"><label>Patient ID <span class="rq">*</span></label><input id="f-id" type="text" placeholder="auto"></div>
+          <div class="fg">
+            <label>Severity <span class="rq">*</span> <span class="hint">(1=min, 5=critical)</span></label>
+            <select id="f-sev" onchange="updateSev()">
+              <option value="">— Select —</option>
+              <option value="1">1 — Minimal</option><option value="2">2 — Minor</option>
+              <option value="3">3 — Moderate</option><option value="4">4 — Serious</option><option value="5">5 — CRITICAL</option>
+            </select>
+            <div class="sev-meter" id="sev-meter">
+              <div class="sev-seg" data-i="1"></div><div class="sev-seg" data-i="2"></div>
+              <div class="sev-seg" data-i="3"></div><div class="sev-seg" data-i="4"></div><div class="sev-seg" data-i="5"></div>
+            </div>
+          </div>
+          <div class="fg"><label>Specialization <span class="rq">*</span></label>
+            <select id="f-spec">
+              <option value="">— Select —</option>
+              <option value="TRAUMA">🔴 TRAUMA</option><option value="CARDIO">🔵 CARDIO</option><option value="GENERAL">🟢 GENERAL</option>
+            </select>
+          </div>
+          <div class="fg"><label>Arrival Time <span class="rq">*</span> <span class="hint">(min ≥ 0)</span></label><input id="f-arr" type="number" placeholder="0" min="0"></div>
+          <div class="fg"><label>Treatment Time <span class="rq">*</span> <span class="hint">(min ≥ 1)</span></label><input id="f-treat" type="number" placeholder="5" min="1"></div>
+        </div>
+        <div class="action-bar">
+          <button class="btn btn-accent" onclick="addPatient()">➕ Add Patient</button>
+          <button class="btn btn-ghost" onclick="loadSample()">🔬 Load Sample (6)</button>
+          <button class="btn btn-ghost btn-sm" onclick="clearForm()">↺ Clear</button>
+        </div>
+      </div>
+
+      <!-- QUEUE -->
+      <div class="card">
+        <div class="card-title"><span>02</span> Patient Queue</div>
+        <div id="empty-q" class="empty"><div class="ei">🛏️</div><h3>Queue is empty</h3><p>Add patients above or upload a CSV</p></div>
+        <div class="tbl-wrap hidden" id="q-tbl">
+          <table>
+            <thead><tr><th>#</th><th>ID</th><th>Name</th><th>Sev</th><th>Arrival</th><th>Treat Time</th><th>Spec</th><th></th></tr></thead>
+            <tbody id="q-tbody"></tbody>
+          </table>
+        </div>
+        <div class="action-bar hidden" id="run-bar">
+          <button class="btn btn-green" onclick="runSmartTriage()">⚡ Run SmartTriage</button>
+          <button class="btn btn-ghost btn-sm" onclick="clearAll()">🗑 Clear All</button>
+          <span class="mono" style="font-size:.7rem;color:var(--text3)" id="q-count"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- CSV TAB -->
+    <div id="p-csv" class="hidden">
+      <div class="card">
+        <div class="card-title" style="--accent:var(--red)"><span style="color:var(--red)">CSV</span> Upload patients.csv</div>
+        <div class="info-hint">
+          <span>💡</span>
+          <span>Required columns: <strong style="color:var(--accent)">patient_id, severity, arrival_time, treatment_time, required_specialization</strong><br>
+          Multiple rows with the same patient_id = multiple vitals readings → auto-plotted on chart. Schedule runs automatically after upload.</span>
+        </div>
+        <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileIn').click()"
+          ondragover="doDragOver(event)" ondragleave="doDragLeave(event)" ondrop="doDrop(event)">
+          <div class="drop-icon">📁</div>
+          <h3>Drop patients.csv here or click to browse</h3>
+          <p>patient_id, severity, arrival_time, treatment_time, required_specialization</p>
+        </div>
+        <input type="file" id="fileIn" accept=".csv" style="display:none" onchange="handleFile(event)">
+        <div class="action-bar">
+          <button class="btn btn-ghost" onclick="dlSample()">⬇️ Download Sample CSV</button>
+        </div>
+      </div>
+      <div class="card hidden" id="csv-preview">
+        <div class="card-title" style="--accent:var(--green)"><span style="color:var(--green)">PREVIEW</span> Loaded Data</div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>patient_id</th><th>severity</th><th>arrival_time</th><th>treatment_time</th><th>specialization</th></tr></thead>
+            <tbody id="csv-tbody"></tbody>
+          </table>
+        </div>
+        <div class="action-bar">
+          <button class="btn btn-green" onclick="runSmartTriage()">⚡ Run SmartTriage</button>
+          <span class="mono" style="font-size:.7rem;color:var(--text3)" id="csv-count"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- SCHEDULE TAB -->
+    <div id="p-schedule" class="hidden">
+      <div id="empty-sched" class="empty"><div class="ei">📊</div><h3>No schedule yet</h3><p>Add patients and run SmartTriage</p></div>
+      <div id="sched-content" class="hidden">
+
+        <!-- KPIs -->
+        <div class="kpi-row">
+          <div class="kpi"><div class="kpi-num info" id="k-pts">—</div><div class="kpi-lbl">Patients</div></div>
+          <div class="kpi"><div class="kpi-num" id="k-risk">—</div><div class="kpi-lbl">Total ER Risk</div></div>
+          <div class="kpi"><div class="kpi-num" id="k-crit">—</div><div class="kpi-lbl">Critical (sev 5)</div></div>
+          <div class="kpi"><div class="kpi-num" id="k-zero">—</div><div class="kpi-lbl">Zero Wait</div></div>
+        </div>
+
+        <!-- DOCTOR STATUS - LIVE -->
+        <div class="card">
+          <div class="card-title"><span>DOCTORS</span> Live Status</div>
+          <div class="doc-status-grid">
+            <div class="doc-status-card TRAUMA free" id="dsc-T">
+              <div class="doc-card-top">
+                <div><div class="doc-name-lbl">Doctor_T</div><div class="doc-spec-lbl">TRAUMA SPECIALIST</div></div>
+                <div class="doc-status-pill free" id="dsp-T"><div class="pill-dot"></div><span id="dst-T">FREE</span></div>
+              </div>
+              <div class="doc-current-patient" id="dcp-T">No patient assigned</div>
+              <div class="doc-free-at" id="dfa-T"></div>
+              <div class="doc-progress"><div class="doc-progress-fill" id="dpf-T" style="width:0%"></div></div>
+            </div>
+            <div class="doc-status-card CARDIO free" id="dsc-C">
+              <div class="doc-card-top">
+                <div><div class="doc-name-lbl">Doctor_C</div><div class="doc-spec-lbl">CARDIOLOGIST</div></div>
+                <div class="doc-status-pill free" id="dsp-C"><div class="pill-dot"></div><span id="dst-C">FREE</span></div>
+              </div>
+              <div class="doc-current-patient" id="dcp-C">No patient assigned</div>
+              <div class="doc-free-at" id="dfa-C"></div>
+              <div class="doc-progress"><div class="doc-progress-fill" id="dpf-C" style="width:0%"></div></div>
+            </div>
+            <div class="doc-status-card GENERAL free" id="dsc-G">
+              <div class="doc-card-top">
+                <div><div class="doc-name-lbl">Doctor_G</div><div class="doc-spec-lbl">GENERAL PHYSICIAN</div></div>
+                <div class="doc-status-pill free" id="dsp-G"><div class="pill-dot"></div><span id="dst-G">FREE</span></div>
+              </div>
+              <div class="doc-current-patient" id="dcp-G">No patient assigned</div>
+              <div class="doc-free-at" id="dfa-G"></div>
+              <div class="doc-progress"><div class="doc-progress-fill" id="dpf-G" style="width:0%"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- PLAYBACK -->
+        <div class="card">
+          <div class="card-title" style="--accent:var(--amber)"><span style="color:var(--amber)">PLAYBACK</span> ER Simulation</div>
+          <div class="playback-bar">
+            <button class="btn btn-ghost btn-sm" id="pb-play" onclick="togglePlay()">▶ Play</button>
+            <button class="btn btn-ghost btn-sm" onclick="resetPlay()">⏮ Reset</button>
+            <span class="pb-time">T = <span id="pb-t">0</span> min</span>
+            <input type="range" class="pb-slider" id="pb-slider" min="0" max="100" value="0" oninput="scrubTime(this.value)">
+            <select id="pb-speed" style="width:80px;font-size:.65rem">
+              <option value="8">0.5×</option><option value="4" selected>1×</option><option value="2">2×</option><option value="1">4×</option>
+            </select>
+          </div>
+          <div style="display:flex;gap:14px;margin-bottom:14px;flex-wrap:wrap;font-family:'IBM Plex Mono',monospace;font-size:.66rem;">
+            <span>🟡 Waiting: <b id="pb-waiting">0</b></span>
+            <span>🔵 In Treatment: <b id="pb-treating">0</b></span>
+            <span>🟢 Done: <b id="pb-done">0</b></span>
+            <span style="color:var(--red)">⚠️ Risk so far: <b id="pb-risk">0</b></span>
+          </div>
+          <div class="tl-wrap"><div class="tl" id="timeline"></div></div>
+        </div>
+
+        <!-- VITALS CHART (auto from CSV) -->
+        <div class="card" id="vitals-chart-card" style="display:none">
+          <div class="card-title" style="--accent:var(--green)"><span style="color:var(--green)">VITALS</span> Patient Data from CSV</div>
+          <div class="chart-wrap">
+            <div class="chart-title">Severity Distribution by Patient</div>
+            <div class="chart-canvas-wrap"><canvas id="sev-chart"></canvas></div>
+          </div>
+          <div class="chart-wrap">
+            <div class="chart-title">Arrival Time vs Treatment Time</div>
+            <div class="chart-canvas-wrap"><canvas id="arr-chart"></canvas></div>
+          </div>
+        </div>
+
+        <!-- HEATMAP -->
+        <div class="card">
+          <div class="card-title" style="--accent:var(--red)"><span style="color:var(--red)">HEATMAP</span> Risk per Patient</div>
+          <div id="heatmap"></div>
+        </div>
+
+        <!-- SCHEDULE TABLE -->
+        <div class="card">
+          <div class="card-title" style="--accent:var(--green)"><span style="color:var(--green)">TABLE</span> Treatment Schedule</div>
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr><th>#</th><th>Patient ID</th><th>Name</th><th>Doctor</th><th>Start</th><th>End</th><th>Wait</th><th>Risk</th><th>Spec</th></tr></thead>
+              <tbody id="sched-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- EXPORT TAB -->
+    <div id="p-export" class="hidden">
+      <div class="card">
+        <div class="card-title"><span style="color:var(--purple)">JSON</span> submission.json</div>
+        <div class="empty hidden" id="empty-json"><div class="ei">📄</div><h3>Run schedule first</h3><p>Add patients and run SmartTriage to generate output</p></div>
+        <div id="json-wrap" class="hidden">
+          <div id="risk-mismatch-warn" class="hidden"></div>
+          <div class="json-out" id="json-out"></div>
+          <div class="action-bar">
+            <button class="btn btn-accent" onclick="dlJSON()">⬇️ Download submission.json</button>
+            <button class="btn btn-ghost" onclick="copyJSON()">📋 Copy JSON</button>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span style="color:var(--green)">REPORT</span> Full Schedule Report (JSON)</div>
+        <div class="empty hidden" id="empty-report"><div class="ei">📊</div><h3>Run schedule first</h3><p>A detailed report including patient info, wait times, risk breakdown, and doctor assignments</p></div>
+        <div id="report-wrap" class="hidden">
+          <div class="json-out" id="report-out"></div>
+          <div class="action-bar">
+            <button class="btn btn-green" onclick="dlReport()">⬇️ Download Report JSON</button>
+            <button class="btn btn-ghost" onclick="copyReport()">📋 Copy</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- PROFILE PANEL -->
+<div class="profile-overlay" id="profile-overlay" onclick="closeProfile()"></div>
+<div class="profile-panel" id="profile-panel">
+  <div class="profile-header"><h2>👤 Staff Profile</h2><button class="profile-close" onclick="closeProfile()">✕</button></div>
+  <div class="profile-body">
+    <div class="profile-hero">
+      <div class="profile-avatar-lg" id="p-avatar-lg"><div class="online-ring"></div></div>
+      <div class="profile-full-name" id="p-full-name">—</div>
+      <div class="profile-role-badge" id="p-role-badge"></div>
+      <div class="profile-dept" id="p-dept"></div>
+    </div>
+    <div class="profile-stats">
+      <div class="ps-item"><div class="ps-num" id="ps-pts">0</div><div class="ps-lbl">Patients</div></div>
+      <div class="ps-item"><div class="ps-num" id="ps-sched">0</div><div class="ps-lbl">Schedules</div></div>
+      <div class="ps-item"><div class="ps-num" id="ps-risk">—</div><div class="ps-lbl">Last Risk</div></div>
+    </div>
+    <div class="profile-info-list" id="p-info-list"></div>
+    <button class="profile-edit-btn" onclick="showEditProfile()">✏️ Edit Profile</button>
+    <button class="profile-logout-btn" onclick="doLogout()">⬑ Sign Out</button>
+  </div>
+</div>
+
+<!-- EDIT PROFILE MODAL -->
+<div id="edit-profile-modal" class="hidden">
+  <div class="modal-overlay" onclick="closeEditProfile()">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal-title"><span>✏️ Edit Profile</span><button class="modal-close" onclick="closeEditProfile()">✕</button></div>
+      <div class="modal-grid">
+        <div class="fg"><label>First Name</label><input id="ep-fname"></div>
+        <div class="fg"><label>Last Name</label><input id="ep-lname"></div>
+        <div class="fg"><label>Role</label>
+          <select id="ep-role"><option>Attending Physician</option><option>Emergency Medicine Resident</option><option>Triage Nurse</option><option>Charge Nurse</option><option>ER Department Head</option><option>Medical Director</option><option>Hospitalist</option></select>
+        </div>
+        <div class="fg"><label>Department</label>
+          <select id="ep-dept"><option>Emergency Medicine</option><option>Trauma Surgery</option><option>Cardiology</option><option>General Surgery</option><option>Pediatrics</option><option>Internal Medicine</option><option>Critical Care</option></select>
+        </div>
+        <div class="fg"><label>Hospital</label><input id="ep-hospital"></div>
+        <div class="fg"><label>Staff ID</label><input id="ep-staffid"></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost btn-sm" onclick="closeEditProfile()">Cancel</button>
+        <button class="btn btn-accent" onclick="saveProfileEdit()">💾 Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toasts"></div>
+
+<script>
+// ═══════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════
+let user = {};
+let patients = [];
+let schedule = [];
+let scheduleCount = 0, lastRisk = null;
+let playInterval = null, playTime = 0, playMax = 0;
+let _jsonOutput = null, _readmeText = '';
+let sevChart = null, arrChart = null;
+
+// ═══════════════════════════════════════════
+//  AVATAR / LOGIN
+// ═══════════════════════════════════════════
+const AVATAR_COLORS = ['#3d9bff','#ff4466','#00dda0','#f5a623','#a78bfa','#ff6b8a'];
+function avatarColor(s){let h=0;for(let c of s)h=(h*31+c.charCodeAt(0))&0xffff;return AVATAR_COLORS[h%AVATAR_COLORS.length];}
+function initials(f,l){return((f[0]||'')+(l[0]||'')).toUpperCase();}
+
+function doLogin(){
+  const fname=document.getElementById('l-fname').value.trim();
+  if(!fname){toast('Enter your first name','e');return;}
+  const lname=document.getElementById('l-lname').value.trim();
+  user={fname,lname,fullName:(fname+' '+lname).trim(),
+    role:document.getElementById('l-role').value,
+    dept:document.getElementById('l-dept').value,
+    hospital:document.getElementById('l-hospital').value.trim()||'City General Hospital',
+    staffId:document.getElementById('l-staffid').value.trim()||'STAFF-'+Date.now().toString().slice(-5),
+    loginTime:new Date().toLocaleString(),
+    color:avatarColor(fname+lname)};
+  localStorage.setItem('st_user', JSON.stringify(user));
+  const ls=document.getElementById('login-screen');
+  ls.classList.add('exit');
+  setTimeout(()=>{ls.style.display='none';const app=document.getElementById('app');app.style.display='block';app.classList.add('visible');applyUserToUI();toast('Welcome, '+user.fname+'! 👋','s');},500);
+}
+
+// Auto-login if saved session exists
+(function(){
+  try {
+    const saved = localStorage.getItem('st_user');
+    if(saved){
+      user = JSON.parse(saved);
+      const ls=document.getElementById('login-screen');
+      ls.style.display='none';
+      const app=document.getElementById('app');
+      app.style.display='block';app.classList.add('visible');
+      // Pre-fill login form in case they want to see it
+      document.getElementById('l-fname').value=user.fname||'';
+      document.getElementById('l-lname').value=user.lname||'';
+      applyUserToUI();
+    }
+  } catch(e){ localStorage.removeItem('st_user'); }
+})();
+
+function applyUserToUI(){
+  const ini=initials(user.fname,user.lname||'');
+  const av=document.getElementById('hdr-avatar');
+  av.textContent=ini;av.style.background=user.color;
+  document.getElementById('hdr-name').textContent=user.fname;
+  const avLg=document.getElementById('p-avatar-lg');
+  avLg.style.background=user.color;avLg.innerHTML=`<div class="online-ring"></div>${ini}`;
+  document.getElementById('p-full-name').textContent=user.fullName||user.fname;
+  const rc={'Attending Physician':'var(--accent)','Emergency Medicine Resident':'var(--green)','Triage Nurse':'var(--amber)','Charge Nurse':'var(--amber)','ER Department Head':'var(--red)','Medical Director':'var(--red)','Hospitalist':'var(--purple)'}[user.role]||'var(--text2)';
+  const rb=document.getElementById('p-role-badge');rb.textContent=user.role;rb.style.cssText=`background:${rc}22;border:1px solid ${rc}44;color:${rc}`;
+  document.getElementById('p-dept').textContent=user.dept;
+  updateProfileStats();renderProfileInfo();
+}
+function updateProfileStats(){
+  document.getElementById('ps-pts').textContent=patients.length;
+  document.getElementById('ps-sched').textContent=scheduleCount;
+  document.getElementById('ps-risk').textContent=lastRisk!==null?lastRisk:'—';
+}
+function renderProfileInfo(){
+  document.getElementById('p-info-list').innerHTML=[
+    ['STAFF ID',user.staffId],['HOSPITAL',user.hospital],['DEPARTMENT',user.dept],['ROLE',user.role],['SESSION',user.loginTime]
+  ].map(([k,v])=>`<div class="pi-row"><span class="pi-key">${k}</span><span class="pi-val">${v}</span></div>`).join('');
+}
+function openProfile(){updateProfileStats();document.getElementById('profile-overlay').classList.add('open');document.getElementById('profile-panel').classList.add('open');}
+function closeProfile(){document.getElementById('profile-overlay').classList.remove('open');document.getElementById('profile-panel').classList.remove('open');}
+function showEditProfile(){
+  document.getElementById('ep-fname').value=user.fname;document.getElementById('ep-lname').value=user.lname;
+  document.getElementById('ep-role').value=user.role;document.getElementById('ep-dept').value=user.dept;
+  document.getElementById('ep-hospital').value=user.hospital;document.getElementById('ep-staffid').value=user.staffId;
+  document.getElementById('edit-profile-modal').classList.remove('hidden');
+}
+function closeEditProfile(){document.getElementById('edit-profile-modal').classList.add('hidden');}
+function saveProfileEdit(){
+  user.fname=document.getElementById('ep-fname').value.trim()||user.fname;
+  user.lname=document.getElementById('ep-lname').value.trim();
+  user.fullName=(user.fname+' '+user.lname).trim();
+  user.role=document.getElementById('ep-role').value;user.dept=document.getElementById('ep-dept').value;
+  user.hospital=document.getElementById('ep-hospital').value.trim()||user.hospital;
+  user.staffId=document.getElementById('ep-staffid').value.trim()||user.staffId;
+  user.color=avatarColor(user.fname+user.lname);
+  localStorage.setItem('st_user', JSON.stringify(user));
+  applyUserToUI();closeEditProfile();closeProfile();toast('Profile updated','s');
+}
+function doLogout(){
+  if(!confirm('Sign out?'))return;closeProfile();
+  localStorage.removeItem('st_user');
+  patients=[];schedule=[];scheduleCount=0;lastRisk=null;
+  if(sevChart){sevChart.destroy();sevChart=null;}if(arrChart){arrChart.destroy();arrChart=null;}
+  document.getElementById('app').style.display='none';
+  const ls=document.getElementById('login-screen');ls.style.display='flex';ls.classList.remove('exit');
+  ls.style.opacity='0';ls.style.transform='scale(.96)';
+  setTimeout(()=>{ls.style.transition='opacity .4s,transform .4s';ls.style.opacity='1';ls.style.transform='scale(1)';},20);
+}
+
+// ═══════════════════════════════════════════
+//  THEME
+// ═══════════════════════════════════════════
+const htmlEl=document.documentElement;
+document.getElementById('themeBtn').addEventListener('click',()=>{
+  const dark=htmlEl.getAttribute('data-theme')==='dark';
+  htmlEl.setAttribute('data-theme',dark?'light':'dark');
+  document.getElementById('themeKnob').textContent=dark?'☀️':'🌙';
+  if(schedule.length)setTimeout(()=>rebuildCharts(),50);
+});
+
+// ═══════════════════════════════════════════
+//  TABS
+// ═══════════════════════════════════════════
+const TABS=['dashboard','csv','schedule','export'];
+function gotoTab(t){
+  TABS.forEach(id=>{document.getElementById('p-'+id)?.classList.toggle('hidden',id!==t);document.getElementById('t-'+id)?.classList.toggle('active',id===t);});
+  if(t==='schedule'&&!schedule.length){document.getElementById('sched-content').classList.add('hidden');document.getElementById('empty-sched').classList.remove('hidden');}
+  if(t==='export'&&schedule.length){
+    document.getElementById('empty-json').classList.add('hidden');
+    document.getElementById('json-wrap').classList.remove('hidden');
+    document.getElementById('empty-report').classList.add('hidden');
+    document.getElementById('report-wrap').classList.remove('hidden');
+  }
+}
+
+// ═══════════════════════════════════════════
+//  SEV METER
+// ═══════════════════════════════════════════
+function updateSev(){const v=parseInt(document.getElementById('f-sev').value)||0;document.querySelectorAll('.sev-seg').forEach(s=>{s.className='sev-seg'+(+s.dataset.i<=v?' on-'+s.dataset.i:'');});}
+
+// ═══════════════════════════════════════════
+//  PATIENT ID
+// ═══════════════════════════════════════════
+let pidCounter=1;
+function nextPid(){while(patients.find(p=>p.patient_id==='P'+pidCounter))pidCounter++;return'P'+pidCounter;}
+
+// ═══════════════════════════════════════════
+//  ADD PATIENT — duplicate checks
+//  - Same patient_id: BLOCKED always
+//  - Same name + same id: BLOCKED
+//  - Same name + different id: ALLOWED (different person with same name)
+// ═══════════════════════════════════════════
+function addPatient(){
+  const name=document.getElementById('f-name').value.trim();
+  const pid=document.getElementById('f-id').value.trim()||nextPid();
+  const sev=parseInt(document.getElementById('f-sev').value);
+  const spec=document.getElementById('f-spec').value;
+  const arr=parseInt(document.getElementById('f-arr').value);
+  const treat=parseInt(document.getElementById('f-treat').value);
+  if(!sev||!spec||isNaN(arr)||isNaN(treat)){toast('Fill all required fields','e');return;}
+  if(arr<0){toast('Arrival time must be ≥ 0','e');return;}
+  if(treat<1){toast('Treatment time must be ≥ 1','e');return;}
+  // Block: same patient_id — do NOT add, just show error
+  if(patients.find(p=>p.patient_id===pid)){
+    toast('Patient ID "'+pid+'" already exists. Patient not added.','e');
+    return;
+  }
+  // Allow same name with different id — just warn, still add
+  const sameName=patients.find(p=>p.name&&name&&p.name.toLowerCase()===name.toLowerCase());
+  if(sameName){toast('Note: another patient named "'+name+'" exists (ID: '+sameName.patient_id+'). Adding as different patient.','w');}
+  patients.push({patient_id:pid,name:name||pid,severity:sev,arrival_time:arr,treatment_time:treat,required_specialization:spec});
+  pidCounter++;renderQueue();clearForm();toast('Patient '+pid+' added','s');updateProfileStats();
+}
+
+function clearForm(){
+  ['f-name','f-id','f-arr','f-treat'].forEach(id=>document.getElementById(id).value='');
+  ['f-sev','f-spec'].forEach(id=>document.getElementById(id).value='');
+  updateSev();document.getElementById('f-id').placeholder=nextPid();
+}
+function removePatient(i){patients.splice(i,1);renderQueue();updateProfileStats();}
+function clearAll(){if(!confirm('Clear all patients?'))return;patients=[];renderQueue();updateProfileStats();}
+
+// ═══════════════════════════════════════════
+//  RENDER QUEUE
+// ═══════════════════════════════════════════
+const sevColors=['','#22c55e','#eab308','#f97316','#ef4444','#dc2626'];
+function renderQueue(){
+  const has=patients.length>0;
+  document.getElementById('empty-q').classList.toggle('hidden',has);
+  document.getElementById('q-tbl').classList.toggle('hidden',!has);
+  document.getElementById('run-bar').classList.toggle('hidden',!has);
+  if(!has){document.getElementById('q-count').textContent='';return;}
+  document.getElementById('q-count').textContent=patients.length+' patient'+(patients.length!==1?'s':'')+' queued';
+  const tb=document.getElementById('q-tbody');tb.innerHTML='';
+  patients.forEach((p,i)=>{
+    const sb=`<span class="badge-${p.required_specialization[0]}">${p.required_specialization}</span>`;
+    tb.innerHTML+=`<tr>
+      <td class="mono" style="color:var(--text3)">${i+1}</td>
+      <td class="mono">${p.patient_id}</td>
+      <td>${p.name}</td>
+      <td><span style="color:${sevColors[p.severity]};font-weight:700;font-family:'IBM Plex Mono',monospace">${p.severity}</span></td>
+      <td class="mono">${p.arrival_time}</td>
+      <td class="mono">${p.treatment_time}</td>
+      <td>${sb}</td>
+      <td><button class="btn btn-red btn-sm" onclick="removePatient(${i})">✕</button></td>
+    </tr>`;
+  });
+  document.getElementById('f-id').placeholder=nextPid();
+}
+
+// ═══════════════════════════════════════════
+//  SAMPLE DATA
+// ═══════════════════════════════════════════
+function loadSample(){
+  patients=[
+    {patient_id:'P1',name:'Alice Chen',  severity:5,arrival_time:0,treatment_time:8, required_specialization:'TRAUMA'},
+    {patient_id:'P2',name:'Bob Martinez',severity:3,arrival_time:2,treatment_time:4, required_specialization:'CARDIO'},
+    {patient_id:'P3',name:'Clara Walsh', severity:4,arrival_time:3,treatment_time:6, required_specialization:'TRAUMA'},
+    {patient_id:'P4',name:'David Kim',   severity:2,arrival_time:5,treatment_time:3, required_specialization:'GENERAL'},
+    {patient_id:'P5',name:'Eva Patel',   severity:5,arrival_time:7,treatment_time:5, required_specialization:'TRAUMA'},
+    {patient_id:'P6',name:'Frank Lee',   severity:1,arrival_time:8,treatment_time:2, required_specialization:'GENERAL'},
+  ];
+  pidCounter=7;renderQueue();toast('Sample data loaded (6 patients)','i');updateProfileStats();
+}
+
+// ═══════════════════════════════════════════
+//  CSV — auto-run schedule after upload
+// ═══════════════════════════════════════════
+function doDragOver(e){e.preventDefault();document.getElementById('dropZone').classList.add('over');}
+function doDragLeave(){document.getElementById('dropZone').classList.remove('over');}
+function doDrop(e){e.preventDefault();document.getElementById('dropZone').classList.remove('over');if(e.dataTransfer.files[0])parseCSV(e.dataTransfer.files[0]);}
+function handleFile(e){if(e.target.files[0])parseCSV(e.target.files[0]);}
+
+function parseCSV(f){
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const lines=e.target.result.trim().split('\n');
+    const hdrs=lines[0].split(',').map(h=>h.trim().toLowerCase());
+    const req=['patient_id','severity','arrival_time','treatment_time','required_specialization'];
+    const miss=req.filter(x=>!hdrs.includes(x));
+    if(miss.length){toast('Missing columns: '+miss.join(', '),'e');return;}
+    patients=[];let errs=0;const seen=new Set();
+    const tb=document.getElementById('csv-tbody');tb.innerHTML='';
+    for(let i=1;i<lines.length;i++){
+      const line=lines[i].trim();if(!line)continue;
+      const vals=line.split(',').map(x=>x.trim());
+      const row={};hdrs.forEach((h,j)=>row[h]=vals[j]);
+      const pid=row.patient_id;const spec=(row.required_specialization||'').toUpperCase();
+      if(!pid||isNaN(+row.severity)||isNaN(+row.arrival_time)||isNaN(+row.treatment_time)||
+         !['TRAUMA','CARDIO','GENERAL'].includes(spec)||seen.has(pid)){errs++;continue;}
+      seen.add(pid);
+      patients.push({patient_id:pid,name:row.name||pid,severity:+row.severity,
+        arrival_time:+row.arrival_time,treatment_time:+row.treatment_time,required_specialization:spec});
+      const sb=`<span class="badge-${spec[0]}">${spec}</span>`;
+      tb.innerHTML+=`<tr>
+        <td class="mono">${pid}</td>
+        <td style="color:${sevColors[+row.severity]||'var(--text)'};font-weight:700;font-family:'IBM Plex Mono',monospace">${row.severity}</td>
+        <td class="mono">${row.arrival_time}</td>
+        <td class="mono">${row.treatment_time}</td>
+        <td>${sb}</td>
+      </tr>`;
+    }
+    document.getElementById('csv-preview').classList.remove('hidden');
+    document.getElementById('csv-count').textContent=patients.length+' patients'+(errs?' ('+errs+' skipped/duplicate)':'');
+    renderQueue();updateProfileStats();
+    toast('Loaded '+patients.length+' patients — running schedule...','i');
+    // AUTO-RUN schedule after short delay
+    setTimeout(()=>runSmartTriage(true),300);
+  };
+  reader.readAsText(f);
+}
+
+function dlSample(){
+  const c=`patient_id,severity,arrival_time,treatment_time,required_specialization\nP1,5,0,8,TRAUMA\nP2,3,2,4,CARDIO\nP3,4,3,6,TRAUMA\nP4,2,5,3,GENERAL\nP5,5,7,5,TRAUMA\nP6,1,8,2,GENERAL`;
+  dl(c,'text/csv','sample_patients.csv');toast('Sample CSV downloaded','i');
+}
+
+// ═══════════════════════════════════════════
+//  OPTIMIZED ALGORITHM
+//  Multi-pass: greedy + local improvement swaps
+//  Minimizes: Σ severity × wait_time
+// ═══════════════════════════════════════════
+function canTreat(d,s){return d==='Doctor_G'||(d==='Doctor_T'&&s==='TRAUMA')||(d==='Doctor_C'&&s==='CARDIO');}
+function calcRisk(sc){return sc.reduce((s,x)=>s+x._severity*(x.start_time-x._arrival),0);}
+
+function rebuildTimesFromAssignments(pts, assignments){
+  // assignments: [{patient_id, doctor_id}] in any order
+  // Re-simulate timeline to get correct start/end times
+  const ptMap={};pts.forEach(p=>ptMap[p.patient_id]=p);
+  const byDoc={Doctor_T:[],Doctor_C:[],Doctor_G:[]};
+  assignments.forEach(a=>byDoc[a.doctor_id].push(ptMap[a.patient_id]));
+  // Sort each doctor's queue by arrival time
+  Object.keys(byDoc).forEach(d=>byDoc[d].sort((a,b)=>a.arrival_time-b.arrival_time));
+  const result=[];
+  Object.entries(byDoc).forEach(([docId,list])=>{
+    let free=0;
+    list.forEach(p=>{
+      const start=Math.max(free,p.arrival_time);
+      free=start+p.treatment_time;
+      result.push({patient_id:p.patient_id,doctor_id:docId,start_time:start,end_time:free,
+        _severity:p.severity,_arrival:p.arrival_time,_spec:p.required_specialization,_name:p.name||p.patient_id,
+        _wait:start-p.arrival_time,_risk:p.severity*(start-p.arrival_time)});
+    });
+  });
+  result.sort((a,b)=>a.start_time-b.start_time);
+  return result;
+}
+
+function runOptimized(pts){
+  if(!pts.length)return[];
+  const sorted=[...pts].sort((a,b)=>a.arrival_time-b.arrival_time);
+
+  // ── Phase 1: Greedy priority scheduling ──
+  const docs={Doctor_T:{freeAt:0},Doctor_C:{freeAt:0},Doctor_G:{freeAt:0}};
+  const sched=[];const done=new Set();const wait=[];
+
+  // Priority score: heavily weight severity, penalize long treatment (prefer quick wins for high-sev)
+  function score(p,now){
+    const wait_so_far=now-p.arrival_time;
+    return p.severity*1000 + wait_so_far*p.severity*2 - p.treatment_time*0.1;
+  }
+
+  function assign(docId,p){
+    const start=Math.max(docs[docId].freeAt,p.arrival_time);
+    docs[docId].freeAt=start+p.treatment_time;
+    done.add(p.patient_id);
+    sched.push({patient_id:p.patient_id,doctor_id:docId,start_time:start,end_time:start+p.treatment_time,
+      _severity:p.severity,_arrival:p.arrival_time,_spec:p.required_specialization,_name:p.name||p.patient_id});
+    const wi=wait.findIndex(x=>x.patient_id===p.patient_id);if(wi>=0)wait.splice(wi,1);
+  }
+
+  let iter=0;
+  while(done.size<sorted.length&&iter<500000){
+    iter++;
+    const now=Math.min(...Object.values(docs).map(d=>d.freeAt));
+    sorted.forEach(p=>{if(!done.has(p.patient_id)&&p.arrival_time<=now&&!wait.find(w=>w.patient_id===p.patient_id))wait.push(p);});
+    let any=false;
+    for(const[docId,doc] of Object.entries(docs)){
+      if(done.size>=sorted.length)break;
+      if(doc.freeAt>now)continue;
+      const cands=wait.filter(p=>canTreat(docId,p.required_specialization));
+      if(!cands.length){
+        const fut=sorted.filter(p=>!done.has(p.patient_id)&&!wait.find(w=>w.patient_id===p.patient_id)&&canTreat(docId,p.required_specialization));
+        if(fut.length)doc.freeAt=Math.min(...fut.map(p=>p.arrival_time));
+        continue;
+      }
+      cands.sort((a,b)=>score(b,now)-score(a,now));
+      let best=cands[0];
+      // Smart overflow: Doctor_G defers to specialist if specialist will be free very soon
+      if(docId==='Doctor_G'&&best.required_specialization!=='GENERAL'){
+        const sd=best.required_specialization==='TRAUMA'?'Doctor_T':'Doctor_C';
+        if(docs[sd].freeAt<=now+3&&best.severity<=3){
+          const go=cands.filter(p=>p.required_specialization==='GENERAL');
+          if(go.length){go.sort((a,b)=>score(b,now)-score(a,now));best=go[0];}else continue;
+        }
+      }
+      assign(docId,best);any=true;
+    }
+    if(!any){
+      const nf=Math.min(...Object.values(docs).map(d=>d.freeAt));
+      const na=sorted.filter(p=>!done.has(p.patient_id)&&!wait.find(w=>w.patient_id===p.patient_id)).reduce((m,p)=>Math.min(m,p.arrival_time),Infinity);
+      const nx=Math.min(nf,na);if(nx===Infinity)break;
+      Object.values(docs).forEach(d=>{if(d.freeAt<=now)d.freeAt=nx;});
+      sorted.forEach(p=>{if(!done.has(p.patient_id)&&p.arrival_time<=nx&&!wait.find(w=>w.patient_id===p.patient_id))wait.push(p);});
+    }
+  }
+
+  sched.sort((a,b)=>a.start_time-b.start_time);
+  sched.forEach(s=>{s._wait=s.start_time-s._arrival;s._risk=s._severity*s._wait;});
+
+  // ── Phase 2: Local improvement — try swapping doctor assignments ──
+  let bestSched=sched;
+  let bestRisk=calcRisk(sched);
+  const assignments=sched.map(s=>({patient_id:s.patient_id,doctor_id:s.doctor_id}));
+
+  for(let pass=0;pass<3;pass++){
+    let improved=false;
+    for(let i=0;i<assignments.length;i++){
+      for(let j=i+1;j<assignments.length;j++){
+        const ai=assignments[i],aj=assignments[j];
+        const pi=pts.find(p=>p.patient_id===ai.patient_id);
+        const pj=pts.find(p=>p.patient_id===aj.patient_id);
+        // Can they swap doctors?
+        if(!canTreat(aj.doctor_id,pi.required_specialization))continue;
+        if(!canTreat(ai.doctor_id,pj.required_specialization))continue;
+        // Try the swap
+        const swapped=assignments.map((a,k)=>{
+          if(k===i)return{patient_id:a.patient_id,doctor_id:aj.doctor_id};
+          if(k===j)return{patient_id:a.patient_id,doctor_id:ai.doctor_id};
+          return a;
+        });
+        const rebuilt=rebuildTimesFromAssignments(pts,swapped);
+        const newRisk=calcRisk(rebuilt);
+        if(newRisk<bestRisk){
+          bestRisk=newRisk;bestSched=rebuilt;
+          assignments[i]={patient_id:ai.patient_id,doctor_id:aj.doctor_id};
+          assignments[j]={patient_id:aj.patient_id,doctor_id:ai.doctor_id};
+          improved=true;break;
+        }
+      }
+      if(improved)break;
+    }
+    if(!improved)break;
+  }
+
+  bestSched.sort((a,b)=>a.start_time-b.start_time);
+  bestSched.forEach(s=>{s._wait=s.start_time-s._arrival;s._risk=s._severity*s._wait;});
+  return bestSched;
+}
+
+// ═══════════════════════════════════════════
+//  RUN
+// ═══════════════════════════════════════════
+function runSmartTriage(fromCsv=false){
+  if(!patients.length){toast('No patients to schedule','e');return;}
+  toast('Optimizing schedule...','i');
+  setTimeout(()=>{
+    schedule=runOptimized(patients);
+    const risk=calcRisk(schedule);
+    scheduleCount++;lastRisk=risk;
+    renderSchedule(risk);
+    document.getElementById('sched-badge').textContent=schedule.length;
+    document.getElementById('sched-badge').style.display='';
+    gotoTab('schedule');
+    buildJSON(risk);buildReport(risk);
+    updateProfileStats();
+    const msg=fromCsv?'CSV loaded & scheduled · Risk = '+risk:'Schedule complete · Risk = '+risk;
+    toast(msg,risk===0?'s':risk<100?'i':'w');
+  },60);
+}
+
+// ═══════════════════════════════════════════
+//  RENDER SCHEDULE
+// ═══════════════════════════════════════════
+function renderSchedule(totalRisk){
+  document.getElementById('sched-content').classList.remove('hidden');
+  document.getElementById('empty-sched').classList.add('hidden');
+  const critPts=schedule.filter(s=>s._severity===5).length;
+  const zeroPts=schedule.filter(s=>s._wait===0).length;
+  const makespan=schedule.length?Math.max(...schedule.map(s=>s.end_time)):0;
+
+  // Risk Optimization card on Dashboard
+  document.getElementById('risk-opt-card').style.display='';
+  document.getElementById('risk-opt-num').textContent=totalRisk;
+  const rn=document.getElementById('risk-opt-num');
+  rn.style.color=totalRisk===0?'var(--green)':totalRisk<100?'var(--amber)':'var(--red)';
+  const maxBar=Math.max(patients.length*5*20,1);
+  const barPct=Math.min(100,(totalRisk/maxBar)*100);
+  document.getElementById('risk-opt-bar').style.width=barPct+'%';
+  const grade=totalRisk===0?'🟢 Perfect — Zero risk':totalRisk<20?'✅ Excellent — Very low risk':totalRisk<50?'🟡 Good — Low risk':totalRisk<200?'🟠 Fair — Moderate risk':'🔴 High risk — consider more doctors';
+  document.getElementById('risk-opt-grade').innerHTML=`<span style="color:${totalRisk===0?'var(--green)':totalRisk<20?'var(--green)':totalRisk<100?'var(--amber)':'var(--red)'}">${grade}</span>`;
+
+  const re=document.getElementById('k-risk');
+  re.textContent=totalRisk;re.className='kpi-num '+(totalRisk===0?'good':totalRisk<100?'ok':'bad');
+  document.getElementById('k-pts').textContent=schedule.length;
+  const ce=document.getElementById('k-crit');ce.textContent=critPts;ce.className='kpi-num '+(critPts===0?'good':critPts<3?'ok':'bad');
+  const ze=document.getElementById('k-zero');ze.textContent=zeroPts;ze.className='kpi-num '+(zeroPts===schedule.length?'good':zeroPts>schedule.length/2?'ok':'bad');
+
+  renderDoctorStatus(0);
+  renderTimeline(makespan);
+  playMax=makespan;playTime=0;
+  document.getElementById('pb-slider').max=makespan;
+  document.getElementById('pb-slider').value=0;
+  document.getElementById('pb-t').textContent=0;
+  renderHeatmap(totalRisk);
+
+  const tb=document.getElementById('sched-tbody');tb.innerHTML='';
+  schedule.forEach((s,i)=>{
+    const rc=s._risk===0?'color:var(--green)':s._risk<20?'color:var(--amber)':'color:var(--red)';
+    tb.innerHTML+=`<tr>
+      <td class="mono" style="color:var(--text3)">${i+1}</td>
+      <td class="mono" style="font-weight:700">${s.patient_id}</td>
+      <td>${s._name}</td>
+      <td class="mono" style="font-size:.68rem">${s.doctor_id}</td>
+      <td class="mono">${s.start_time}</td>
+      <td class="mono">${s.end_time}</td>
+      <td class="mono">${s._wait} min</td>
+      <td class="mono" style="${rc};font-weight:700">${s._risk}</td>
+      <td><span class="badge-${s._spec[0]}">${s._spec}</span></td>
+    </tr>`;
+  });
+
+  // Build charts from patient data
+  buildPatientCharts();
+}
+
+// ═══════════════════════════════════════════
+//  DOCTOR STATUS (live during playback)
+// ═══════════════════════════════════════════
+function renderDoctorStatus(t){
+  ['T','C','G'].forEach(k=>{
+    const docId='Doctor_'+k;
+    const current=schedule.find(s=>s.doctor_id===docId&&s.start_time<=t&&s.end_time>t);
+    const card=document.getElementById('dsc-'+k);
+    const pill=document.getElementById('dsp-'+k);
+    const lbl=document.getElementById('dst-'+k);
+    const cpEl=document.getElementById('dcp-'+k);
+    const faEl=document.getElementById('dfa-'+k);
+    const pf=document.getElementById('dpf-'+k);
+
+    if(current){
+      card.className='doc-status-card '+['TRAUMA','CARDIO','GENERAL'][['T','C','G'].indexOf(k)]+' busy';
+      pill.className='doc-status-pill busy';lbl.textContent='TREATING';
+      cpEl.textContent='→ '+current.patient_id+' ('+current._name+') · Sev '+current._severity;
+      faEl.textContent='Free at T='+current.end_time+' min';
+      const prog=((t-current.start_time)/(current.end_time-current.start_time))*100;
+      pf.style.width=Math.min(100,prog)+'%';
+    } else {
+      // Check if there's a next patient queued
+      const next=schedule.filter(s=>s.doctor_id===docId&&s.start_time>t).sort((a,b)=>a.start_time-b.start_time)[0];
+      card.className='doc-status-card '+['TRAUMA','CARDIO','GENERAL'][['T','C','G'].indexOf(k)]+' free';
+      pill.className='doc-status-pill free';lbl.textContent='FREE';
+      cpEl.textContent=next?'Next: '+next.patient_id+' at T='+next.start_time:'No more patients';
+      faEl.textContent='';pf.style.width='0%';
+    }
+  });
+}
+
+// ═══════════════════════════════════════════
+//  TIMELINE
+// ═══════════════════════════════════════════
+function renderTimeline(makespan){
+  const W=Math.max(makespan,1);
+  const sc=sev=>sev>=5?'sev-critical':sev===4?'sev-serious':sev===3?'sev-moderate':sev===2?'sev-minor':'sev-minimal';
+  let h='<div style="display:flex;padding:0 0 8px 100px;font-family:\'IBM Plex Mono\',monospace;font-size:.58rem;color:var(--text3)">';
+  const step=Math.ceil(W/Math.min(14,W));
+  for(let t=0;t<=W;t+=step)h+=`<span style="flex:${step};text-align:left;padding-left:2px">${t}</span>`;
+  h+='</div>';
+  ['Doctor_T','Doctor_C','Doctor_G'].forEach(d=>{
+    const ds=schedule.filter(s=>s.doctor_id===d).sort((a,b)=>a.start_time-b.start_time);
+    h+=`<div class="tl-row"><div class="tl-lbl">${d}</div><div class="tl-track" style="position:relative">
+      <div class="tl-cursor-line" id="cur-${d}" style="left:0%;opacity:0"></div>`;
+    // Show idle gaps between treatments
+    let prevEnd=0;
+    ds.forEach(s=>{
+      if(s.start_time>prevEnd){
+        const iL=(prevEnd/W)*100,iW=((s.start_time-prevEnd)/W)*100;
+        if(iW>1)h+=`<div class="tl-idle" style="left:${iL}%;width:${iW}%"><span class="tl-idle-lbl">IDLE</span></div>`;
+      }
+      const L=(s.start_time/W)*100,Wd=((s.end_time-s.start_time)/W)*100;
+      h+=`<div class="tl-block ${sc(s._severity)}" style="left:${L}%;width:${Wd}%"
+        title="${s.patient_id} | Sev ${s._severity} | ${s.start_time}–${s.end_time} | wait:${s._wait}min | risk:${s._risk}">${Wd>4?s.patient_id:''}</div>`;
+      prevEnd=s.end_time;
+    });
+    h+='</div></div>';
+  });
+  document.getElementById('timeline').innerHTML=h;
+}
+
+// ═══════════════════════════════════════════
+//  PLAYBACK — updates doctor status live
+// ═══════════════════════════════════════════
+function togglePlay(){
+  if(playInterval){clearInterval(playInterval);playInterval=null;document.getElementById('pb-play').textContent='▶ Play';return;}
+  if(playTime>=playMax)playTime=0;
+  document.getElementById('pb-play').textContent='⏸ Pause';
+  const spd=parseInt(document.getElementById('pb-speed').value);
+  playInterval=setInterval(()=>{
+    playTime++;updatePlayback(playTime);
+    if(playTime>=playMax){clearInterval(playInterval);playInterval=null;document.getElementById('pb-play').textContent='▶ Play';}
+  },spd*16);
+}
+function resetPlay(){if(playInterval){clearInterval(playInterval);playInterval=null;}playTime=0;document.getElementById('pb-play').textContent='▶ Play';document.getElementById('pb-slider').value=0;updatePlayback(0);}
+function scrubTime(v){playTime=parseInt(v);updatePlayback(playTime);}
+function updatePlayback(t){
+  document.getElementById('pb-t').textContent=t;
+  document.getElementById('pb-slider').value=t;
+  const W=Math.max(playMax,1),pct=(t/W)*100;
+  ['Doctor_T','Doctor_C','Doctor_G'].forEach(d=>{const c=document.getElementById('cur-'+d);if(c){c.style.left=pct+'%';c.style.opacity='1';}});
+  renderDoctorStatus(t);
+  document.getElementById('pb-waiting').textContent=patients.filter(p=>p.arrival_time<=t&&!schedule.find(s=>s.patient_id===p.patient_id&&s.start_time<=t)).length;
+  document.getElementById('pb-treating').textContent=schedule.filter(s=>s.start_time<=t&&s.end_time>t).length;
+  document.getElementById('pb-done').textContent=schedule.filter(s=>s.end_time<=t).length;
+  document.getElementById('pb-risk').textContent=schedule.filter(s=>s.end_time<=t).reduce((sum,s)=>sum+s._risk,0);
+}
+
+// ═══════════════════════════════════════════
+//  HEATMAP
+// ═══════════════════════════════════════════
+function renderHeatmap(totalRisk){
+  const sorted=[...schedule].sort((a,b)=>b._risk-a._risk);
+  const maxR=sorted[0]?._risk||1;
+  const sc=sev=>sev>=5?'var(--red)':sev===4?'#ff7840':sev===3?'var(--amber)':sev===2?'#64c850':'var(--green)';
+  const sl=sev=>['','Minimal','Minor','Moderate','Serious','Critical'][sev];
+  let h='';
+  sorted.forEach(s=>{
+    const pct=totalRisk===0?0:Math.max(4,(s._risk/Math.max(maxR,1))*100);
+    const c=sc(s._severity);
+    h+=`<div class="heatmap-row">
+      <span class="mono" style="font-size:.66rem;width:40px;color:var(--text2)">${s.patient_id}</span>
+      <span style="width:6px;height:6px;border-radius:50%;background:${c};flex-shrink:0;display:inline-block;margin-right:4px"></span>
+      <div class="hm-bar-wrap"><div class="hm-bar" style="width:${pct}%;background:${c}">
+        ${pct>12?`<span style="font-family:'IBM Plex Mono',monospace;font-size:.58rem;font-weight:700">${s._risk}</span>`:''}
+      </div></div>
+      <span class="hm-val">r=${s._risk}</span>
+      <span class="hm-label" style="color:${c}">${sl(s._severity)}</span>
+    </div>`;
+  });
+  document.getElementById('heatmap').innerHTML=h||'<div style="color:var(--text3);font-family:\'IBM Plex Mono\',monospace;font-size:.73rem;padding:14px">🎉 Zero risk — all patients treated immediately!</div>';
+}
+
+// ═══════════════════════════════════════════
+//  AUTO CHARTS FROM CSV/DATA
+// ═══════════════════════════════════════════
+function buildPatientCharts(){
+  if(!window.Chart||!patients.length){
+    document.getElementById('vitals-chart-card').style.display='none';return;
+  }
+  document.getElementById('vitals-chart-card').style.display='';
+  const isDark=htmlEl.getAttribute('data-theme')==='dark';
+  const gridC=isDark?'rgba(255,255,255,.04)':'rgba(0,0,0,.06)';
+  const textC=isDark?'#6b84aa':'#64748b';
+
+  // Chart 1: Severity bar chart
+  const sevCtx=document.getElementById('sev-chart').getContext('2d');
+  if(sevChart)sevChart.destroy();
+  const sevMap={1:0,2:0,3:0,4:0,5:0};
+  patients.forEach(p=>sevMap[p.severity]=(sevMap[p.severity]||0)+1);
+  sevChart=new Chart(sevCtx,{
+    type:'bar',
+    data:{
+      labels:['1 — Minimal','2 — Minor','3 — Moderate','4 — Serious','5 — Critical'],
+      datasets:[{
+        label:'Patients',
+        data:[sevMap[1],sevMap[2],sevMap[3],sevMap[4],sevMap[5]],
+        backgroundColor:['rgba(34,197,94,.7)','rgba(234,179,8,.7)','rgba(249,115,22,.7)','rgba(239,68,68,.7)','rgba(220,38,38,.9)'],
+        borderColor:['#22c55e','#eab308','#f97316','#ef4444','#dc2626'],
+        borderWidth:1,borderRadius:6
+      }]
+    },
+    options:{responsive:true,maintainAspectRatio:false,animation:{duration:600},
+      plugins:{legend:{display:false},tooltip:{backgroundColor:isDark?'#0a0e1a':'#fff',borderColor:isDark?'#1a2238':'#cdd6ed',borderWidth:1,titleColor:textC,bodyColor:isDark?'#e2ecff':'#0d1530',titleFont:{family:"'IBM Plex Mono',monospace",size:10},bodyFont:{family:"'IBM Plex Mono',monospace",size:11}}},
+      scales:{x:{grid:{color:gridC},ticks:{color:textC,font:{family:"'IBM Plex Mono',monospace",size:9}}},y:{grid:{color:gridC},ticks:{color:textC,font:{family:"'IBM Plex Mono',monospace",size:9},stepSize:1}}}}
+  });
+
+  // Chart 2: Scatter — arrival time vs treatment time, colored by severity
+  const arrCtx=document.getElementById('arr-chart').getContext('2d');
+  if(arrChart)arrChart.destroy();
+  const colors5=['#22c55e','#eab308','#f97316','#ef4444','#dc2626'];
+  const datasets=[1,2,3,4,5].map(sev=>({
+    label:'Sev '+sev,
+    data:patients.filter(p=>p.severity===sev).map(p=>({x:p.arrival_time,y:p.treatment_time,id:p.patient_id})),
+    backgroundColor:colors5[sev-1]+'bb',borderColor:colors5[sev-1],pointRadius:6,pointHoverRadius:8
+  }));
+  arrChart=new Chart(arrCtx,{
+    type:'scatter',
+    data:{datasets},
+    options:{responsive:true,maintainAspectRatio:false,animation:{duration:600},
+      plugins:{legend:{display:true,labels:{color:textC,font:{family:"'IBM Plex Mono',monospace",size:9},boxWidth:10}},
+        tooltip:{backgroundColor:isDark?'#0a0e1a':'#fff',borderColor:isDark?'#1a2238':'#cdd6ed',borderWidth:1,titleColor:textC,bodyColor:isDark?'#e2ecff':'#0d1530',titleFont:{family:"'IBM Plex Mono',monospace",size:10},bodyFont:{family:"'IBM Plex Mono',monospace",size:11},
+          callbacks:{label:ctx=>`${ctx.raw.id} · Arrival:${ctx.raw.x}min · Treat:${ctx.raw.y}min`}}},
+      scales:{x:{grid:{color:gridC},ticks:{color:textC,font:{family:"'IBM Plex Mono',monospace",size:9}},title:{display:true,text:'Arrival Time (min)',color:textC,font:{family:"'IBM Plex Mono',monospace",size:9}}},
+        y:{grid:{color:gridC},ticks:{color:textC,font:{family:"'IBM Plex Mono',monospace",size:9}},title:{display:true,text:'Treatment Time (min)',color:textC,font:{family:"'IBM Plex Mono',monospace",size:9}}}}}
+  });
+}
+
+function rebuildCharts(){if(schedule.length)buildPatientCharts();}
+
+// ═══════════════════════════════════════════
+//  JSON BUILD + RISK MISMATCH WARNING
+// ═══════════════════════════════════════════
+function buildJSON(risk){
+  if(!schedule.length)return;
+  const sortedSched=[...schedule].sort((a,b)=>a.start_time-b.start_time);
+  _jsonOutput={
+    treatments:sortedSched.map(s=>({patient_id:s.patient_id,doctor_id:s.doctor_id,start_time:s.start_time,end_time:s.end_time})),
+    estimated_total_risk:risk
+  };
+  const recomputed=sortedSched.reduce((sum,s)=>{
+    const p=patients.find(x=>x.patient_id===s.patient_id);
+    return sum+(p?s._severity*(s.start_time-p.arrival_time):0);
+  },0);
+  const mismatch=document.getElementById('risk-mismatch-warn');
+  if(Math.abs(recomputed-risk)>0){
+    _jsonOutput.estimated_total_risk=recomputed;
+    mismatch.className='warn-banner';mismatch.classList.remove('hidden');
+    mismatch.innerHTML='⚠️ Risk mismatch auto-corrected: '+risk+' → '+recomputed;
+  } else {
+    mismatch.className='ok-banner';mismatch.classList.remove('hidden');
+    mismatch.innerHTML='✅ estimated_total_risk = '+risk+' verified correct.';
+  }
+  document.getElementById('empty-json').classList.add('hidden');
+  document.getElementById('json-wrap').classList.remove('hidden');
+  const raw=JSON.stringify(_jsonOutput,null,2)
+    .replace(/"([^"]+)":/g,'<span class="jk">"$1"</span>:')
+    .replace(/: "([^"]+)"/g,': <span class="js">"$1"</span>')
+    .replace(/: (\d+)/g,': <span class="jn">$1</span>');
+  document.getElementById('json-out').innerHTML=raw;
+}
+
+// ═══════════════════════════════════════════
+//  REPORT JSON — detailed schedule report
+// ═══════════════════════════════════════════
+let _reportOutput = null;
+function buildReport(risk){
+  if(!schedule.length)return;
+  const makespan=Math.max(...schedule.map(s=>s.end_time));
+  const avgWait=Math.round(schedule.reduce((a,b)=>a+b._wait,0)/schedule.length*10)/10;
+  const sortedSched=[...schedule].sort((a,b)=>a.start_time-b.start_time);
+  _reportOutput={
+    report:{
+      generated_by:user.fullName||user.fname,
+      role:user.role,
+      hospital:user.hospital,
+      generated_at:new Date().toISOString(),
+      total_patients:patients.length,
+      total_er_risk:risk,
+      avg_wait_minutes:avgWait,
+      makespan_minutes:makespan,
+      zero_wait_patients:schedule.filter(s=>s._wait===0).length,
+      critical_patients:schedule.filter(s=>s._severity===5).length,
+      algorithm:'Optimized Priority Greedy + Local Swap Improvement'
+    },
+    doctor_summary:{
+      Doctor_T:{patients_treated:schedule.filter(s=>s.doctor_id==='Doctor_T').length,specialization:'TRAUMA'},
+      Doctor_C:{patients_treated:schedule.filter(s=>s.doctor_id==='Doctor_C').length,specialization:'CARDIO'},
+      Doctor_G:{patients_treated:schedule.filter(s=>s.doctor_id==='Doctor_G').length,specialization:'GENERAL (any)'}
+    },
+    schedule_details:sortedSched.map(s=>({
+      patient_id:s.patient_id,
+      patient_name:s._name,
+      severity:s._severity,
+      specialization:s._spec,
+      doctor_id:s.doctor_id,
+      arrival_time:s._arrival,
+      start_time:s.start_time,
+      end_time:s.end_time,
+      wait_time:s._wait,
+      patient_risk:s._risk
+    }))
+  };
+  document.getElementById('empty-report').classList.add('hidden');
+  document.getElementById('report-wrap').classList.remove('hidden');
+  const raw=JSON.stringify(_reportOutput,null,2)
+    .replace(/"([^"]+)":/g,'<span class="jk">"$1"</span>:')
+    .replace(/: "([^"]+)"/g,': <span class="js">"$1"</span>')
+    .replace(/: (\d+\.?\d*)/g,': <span class="jn">$1</span>');
+  document.getElementById('report-out').innerHTML=raw;
+}
+
+function dlJSON(){if(!_jsonOutput){toast('Run schedule first','e');return;}dl(JSON.stringify(_jsonOutput,null,2),'application/json','submission.json');toast('submission.json downloaded','s');}
+function copyJSON(){if(!_jsonOutput)return;navigator.clipboard.writeText(JSON.stringify(_jsonOutput,null,2)).then(()=>toast('Copied','s')).catch(()=>toast('Failed','e'));}
+function dlReport(){if(!_reportOutput){toast('Run schedule first','e');return;}dl(JSON.stringify(_reportOutput,null,2),'application/json','smarttriage_report.json');toast('Report downloaded','s');}
+function copyReport(){if(!_reportOutput)return;navigator.clipboard.writeText(JSON.stringify(_reportOutput,null,2)).then(()=>toast('Copied','s')).catch(()=>toast('Failed','e'));}
+
+// ═══════════════════════════════════════════
+//  UTILS
+// ═══════════════════════════════════════════
+function dl(c,t,n){
+  const blob=new Blob([c],{type:t});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=n;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(url);},200);
+}
+function toast(msg,type='i'){
+  const icons={s:'✅',e:'❌',i:'ℹ️',w:'⚠️'};
+  const el=document.createElement('div');el.className=`toast ${type}`;
+  el.innerHTML=`<span>${icons[type]}</span><span>${msg}</span>`;
+  document.getElementById('toasts').appendChild(el);
+  setTimeout(()=>{el.style.cssText='opacity:0;transform:translateX(30px);transition:.3s';setTimeout(()=>el.remove(),300);},3500);
+}
+
+// Chart.js
+(function(){const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js';s.onload=()=>{window._chartJSReady=true;};document.head.appendChild(s);})();
+
+document.getElementById('f-id').placeholder=nextPid();
+</script>
+</body>
+</html>
