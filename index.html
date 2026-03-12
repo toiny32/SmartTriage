@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SmartTriage — ER Optimizer</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@300;400;500;700&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,300&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-glow"></div>
+  <div class="login-wrap">
+    <div class="login-logo">
+      <div class="login-cross"></div>
+      <div class="login-title">SmartTriage</div>
+      <div class="login-sub">Emergency Room Optimizer</div>
+    </div>
+    <div class="login-card">
+      <h2>Sign in to your workspace</h2>
+      <p>Enter your details to access the ER dashboard</p>
+      <div class="login-row">
+        <div class="login-field"><label>First Name <span style="color:var(--red)">*</span></label><input class="login-input" id="l-fname" placeholder="Dr. Jane" autocomplete="given-name"></div>
+        <div class="login-field"><label>Last Name</label><input class="login-input" id="l-lname" placeholder="Smith" autocomplete="family-name"></div>
+      </div>
+      <div class="login-field"><label>Role / Title</label>
+        <select class="login-select" id="l-role">
+          <option>Attending Physician</option><option>Emergency Medicine Resident</option>
+          <option>Triage Nurse</option><option>Charge Nurse</option>
+          <option>ER Department Head</option><option>Medical Director</option><option>Hospitalist</option>
+        </select>
+      </div>
+      <div class="login-row">
+        <div class="login-field"><label>Department</label>
+          <select class="login-select" id="l-dept">
+            <option>Emergency Medicine</option><option>Trauma Surgery</option><option>Cardiology</option>
+            <option>General Surgery</option><option>Pediatrics</option><option>Internal Medicine</option><option>Critical Care</option>
+          </select>
+        </div>
+        <div class="login-field"><label>Hospital</label><input class="login-input" id="l-hospital" placeholder="City General Hospital"></div>
+      </div>
+      <div class="login-field"><label>Staff ID</label><input class="login-input" id="l-staffid" placeholder="MD-2024-001"></div>
+      <div class="login-divider"></div>
+      <button class="login-btn" onclick="doLogin()">→ Enter Dashboard</button>
+      <div class="login-hint">Demo mode · All data stays local · No password required</div>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <header>
+    <div class="logo">
+      <div class="logo-cross"></div>
+      <span class="logo-name">SmartTriage</span>
+      <span class="logo-ver">v5.0</span>
+    </div>
+    <div class="header-right">
+      <div class="live-badge"><div class="live-dot"></div>SYSTEM ONLINE</div>
+      <div class="theme-btn" id="themeBtn">
+        <div class="theme-knob" id="themeKnob">🌙</div>
+        <div class="theme-labels"><span>D</span><span>L</span></div>
+      </div>
+      <div class="user-btn" onclick="openProfile()">
+        <div class="user-avatar" id="hdr-avatar"></div>
+        <span class="user-btn-name" id="hdr-name">—</span>
+      </div>
+    </div>
+  </header>
+
+  <nav class="nav">
+    <button class="nav-tab active" onclick="gotoTab('dashboard')" id="t-dashboard">🏥 Dashboard</button>
+    <button class="nav-tab" onclick="gotoTab('csv')" id="t-csv">📂 CSV</button>
+    <button class="nav-tab green-tab" onclick="gotoTab('schedule')" id="t-schedule">📊 Schedule <span class="badge" id="sched-badge" style="display:none">0</span></button>
+    <button class="nav-tab" onclick="gotoTab('export')" id="t-export">📦 Export</button>
+  </nav>
+
+  <main>
+
+    <!-- DASHBOARD TAB -->
+    <div id="p-dashboard">
+
+      <!-- RISK OPTIMIZATION KPI -->
+      <div class="card" id="risk-opt-card" style="display:none">
+        <div class="card-title"><span style="color:var(--red)">RISK</span> Optimization Score</div>
+        <div style="display:flex;align-items:center;gap:24px;flex-wrap:wrap;">
+          <div style="text-align:center;padding:10px 24px;background:var(--bg3);border-radius:12px;border:1px solid var(--border);">
+            <div id="risk-opt-num" style="font-family:'Syne',sans-serif;font-size:3rem;font-weight:800;line-height:1;color:var(--red)">—</div>
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:.58rem;letter-spacing:2px;color:var(--text3);margin-top:4px">TOTAL ER RISK</div>
+          </div>
+          <div style="flex:1;min-width:200px;">
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--text2);margin-bottom:8px;">Risk = Σ (severity × wait_time) per patient</div>
+            <div id="risk-opt-bar-wrap" style="width:100%;height:12px;background:var(--bg3);border-radius:6px;overflow:hidden;margin-bottom:8px;">
+              <div id="risk-opt-bar" style="height:100%;border-radius:6px;background:linear-gradient(90deg,var(--green),var(--amber),var(--red));transition:width .8s ease;width:0%"></div>
+            </div>
+            <div id="risk-opt-grade" style="font-family:'IBM Plex Mono',monospace;font-size:.72rem;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PATIENT INPUT -->
+      <div class="card">
+        <div class="card-title"><span>01</span> Patient Information</div>
+        <div class="form-grid">
+          <div class="fg"><label>Patient Name</label><input id="f-name" type="text" placeholder="e.g. John Doe"></div>
+          <div class="fg"><label>Patient ID <span class="rq">*</span></label><input id="f-id" type="text" placeholder="auto"></div>
+          <div class="fg">
+            <label>Severity <span class="rq">*</span> <span class="hint">(1=min, 5=critical)</span></label>
+            <select id="f-sev" onchange="updateSev()">
+              <option value="">— Select —</option>
+              <option value="1">1 — Minimal</option><option value="2">2 — Minor</option>
+              <option value="3">3 — Moderate</option><option value="4">4 — Serious</option><option value="5">5 — CRITICAL</option>
+            </select>
+            <div class="sev-meter" id="sev-meter">
+              <div class="sev-seg" data-i="1"></div><div class="sev-seg" data-i="2"></div>
+              <div class="sev-seg" data-i="3"></div><div class="sev-seg" data-i="4"></div><div class="sev-seg" data-i="5"></div>
+            </div>
+          </div>
+          <div class="fg"><label>Specialization <span class="rq">*</span></label>
+            <select id="f-spec">
+              <option value="">— Select —</option>
+              <option value="TRAUMA">🔴 TRAUMA</option><option value="CARDIO">🔵 CARDIO</option><option value="GENERAL">🟢 GENERAL</option>
+            </select>
+          </div>
+          <div class="fg"><label>Arrival Time <span class="rq">*</span> <span class="hint">(min ≥ 0)</span></label><input id="f-arr" type="number" placeholder="0" min="0"></div>
+          <div class="fg"><label>Treatment Time <span class="rq">*</span> <span class="hint">(min ≥ 1)</span></label><input id="f-treat" type="number" placeholder="5" min="1"></div>
+        </div>
+        <div class="action-bar">
+          <button class="btn btn-accent" onclick="addPatient()">➕ Add Patient</button>
+          <button class="btn btn-ghost" onclick="loadSample()">🔬 Load Sample (6)</button>
+          <button class="btn btn-ghost btn-sm" onclick="clearForm()">↺ Clear</button>
+        </div>
+      </div>
+
+      <!-- QUEUE -->
+      <div class="card">
+        <div class="card-title"><span>02</span> Patient Queue</div>
+        <div id="empty-q" class="empty"><div class="ei">🛏️</div><h3>Queue is empty</h3><p>Add patients above or upload a CSV</p></div>
+        <div class="tbl-wrap hidden" id="q-tbl">
+          <table>
+            <thead><tr><th>#</th><th>ID</th><th>Name</th><th>Sev</th><th>Arrival</th><th>Treat Time</th><th>Spec</th><th></th></tr></thead>
+            <tbody id="q-tbody"></tbody>
+          </table>
+        </div>
+        <div class="action-bar hidden" id="run-bar">
+          <button class="btn btn-green" onclick="runSmartTriage()">⚡ Run SmartTriage</button>
+          <button class="btn btn-ghost btn-sm" onclick="clearAll()">🗑 Clear All</button>
+          <span class="mono" style="font-size:.7rem;color:var(--text3)" id="q-count"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- CSV TAB -->
+    <div id="p-csv" class="hidden">
+      <div class="card">
+        <div class="card-title" style="--accent:var(--red)"><span style="color:var(--red)">CSV</span> Upload patients.csv</div>
+        <div class="info-hint">
+          <span>💡</span>
+          <span>Required columns: <strong style="color:var(--accent)">patient_id, severity, arrival_time, treatment_time, required_specialization</strong><br>
+          Schedule runs automatically after upload.</span>
+        </div>
+        <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileIn').click()"
+          ondragover="doDragOver(event)" ondragleave="doDragLeave(event)" ondrop="doDrop(event)">
+          <div class="drop-icon">📁</div>
+          <h3>Drop patients.csv here or click to browse</h3>
+          <p>patient_id, severity, arrival_time, treatment_time, required_specialization</p>
+        </div>
+        <input type="file" id="fileIn" accept=".csv" style="display:none" onchange="handleFile(event)">
+        <div class="action-bar">
+          <button class="btn btn-ghost" onclick="dlSample()">⬇️ Download Sample CSV</button>
+        </div>
+      </div>
+      <div class="card hidden" id="csv-preview">
+        <div class="card-title" style="--accent:var(--green)"><span style="color:var(--green)">PREVIEW</span> Loaded Data</div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>patient_id</th><th>severity</th><th>arrival_time</th><th>treatment_time</th><th>specialization</th></tr></thead>
+            <tbody id="csv-tbody"></tbody>
+          </table>
+        </div>
+        <div class="action-bar">
+          <button class="btn btn-green" onclick="runSmartTriage()">⚡ Run SmartTriage</button>
+          <span class="mono" style="font-size:.7rem;color:var(--text3)" id="csv-count"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- SCHEDULE TAB -->
+    <div id="p-schedule" class="hidden">
+      <div id="empty-sched" class="empty"><div class="ei">📊</div><h3>No schedule yet</h3><p>Add patients and run SmartTriage</p></div>
+      <div id="sched-content" class="hidden">
+
+        <!-- KPIs -->
+        <div class="kpi-row">
+          <div class="kpi"><div class="kpi-num info" id="k-pts">—</div><div class="kpi-lbl">Patients</div></div>
+          <div class="kpi"><div class="kpi-num" id="k-risk">—</div><div class="kpi-lbl">Total ER Risk</div></div>
+          <div class="kpi"><div class="kpi-num" id="k-crit">—</div><div class="kpi-lbl">Critical (sev 5)</div></div>
+          <div class="kpi"><div class="kpi-num" id="k-zero">—</div><div class="kpi-lbl">Zero Wait</div></div>
+        </div>
+
+        <!-- DOCTOR STATUS -->
+        <div class="card">
+          <div class="card-title"><span>DOCTORS</span> Live Status</div>
+          <div class="doc-status-grid">
+            <div class="doc-status-card TRAUMA free" id="dsc-T">
+              <div class="doc-card-top">
+                <div><div class="doc-name-lbl">Doctor_T</div><div class="doc-spec-lbl">TRAUMA SPECIALIST</div></div>
+                <div class="doc-status-pill free" id="dsp-T"><div class="pill-dot"></div><span id="dst-T">FREE</span></div>
+              </div>
+              <div class="doc-current-patient" id="dcp-T">No patient assigned</div>
+              <div class="doc-free-at" id="dfa-T"></div>
+              <div class="doc-progress"><div class="doc-progress-fill" id="dpf-T" style="width:0%"></div></div>
+            </div>
+            <div class="doc-status-card CARDIO free" id="dsc-C">
+              <div class="doc-card-top">
+                <div><div class="doc-name-lbl">Doctor_C</div><div class="doc-spec-lbl">CARDIOLOGIST</div></div>
+                <div class="doc-status-pill free" id="dsp-C"><div class="pill-dot"></div><span id="dst-C">FREE</span></div>
+              </div>
+              <div class="doc-current-patient" id="dcp-C">No patient assigned</div>
+              <div class="doc-free-at" id="dfa-C"></div>
+              <div class="doc-progress"><div class="doc-progress-fill" id="dpf-C" style="width:0%"></div></div>
+            </div>
+            <div class="doc-status-card GENERAL free" id="dsc-G">
+              <div class="doc-card-top">
+                <div><div class="doc-name-lbl">Doctor_G</div><div class="doc-spec-lbl">GENERAL PHYSICIAN</div></div>
+                <div class="doc-status-pill free" id="dsp-G"><div class="pill-dot"></div><span id="dst-G">FREE</span></div>
+              </div>
+              <div class="doc-current-patient" id="dcp-G">No patient assigned</div>
+              <div class="doc-free-at" id="dfa-G"></div>
+              <div class="doc-progress"><div class="doc-progress-fill" id="dpf-G" style="width:0%"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- PLAYBACK -->
+        <div class="card">
+          <div class="card-title" style="--accent:var(--amber)"><span style="color:var(--amber)">PLAYBACK</span> ER Simulation</div>
+          <div class="playback-bar">
+            <button class="btn btn-ghost btn-sm" id="pb-play" onclick="togglePlay()">▶ Play</button>
+            <button class="btn btn-ghost btn-sm" onclick="resetPlay()">⏮ Reset</button>
+            <span class="pb-time">T = <span id="pb-t">0</span> min</span>
+            <input type="range" class="pb-slider" id="pb-slider" min="0" max="100" value="0" oninput="scrubTime(this.value)">
+            <select id="pb-speed" style="width:80px;font-size:.65rem">
+              <option value="8">0.5×</option><option value="4" selected>1×</option><option value="2">2×</option><option value="1">4×</option>
+            </select>
+          </div>
+          <div style="display:flex;gap:14px;margin-bottom:14px;flex-wrap:wrap;font-family:'IBM Plex Mono',monospace;font-size:.66rem;">
+            <span>🟡 Waiting: <b id="pb-waiting">0</b></span>
+            <span>🔵 In Treatment: <b id="pb-treating">0</b></span>
+            <span>🟢 Done: <b id="pb-done">0</b></span>
+            <span style="color:var(--red)">⚠️ Risk so far: <b id="pb-risk">0</b></span>
+          </div>
+          <div class="tl-wrap"><div class="tl" id="timeline"></div></div>
+        </div>
+
+        <!-- AUTO CHARTS -->
+        <div class="card" id="vitals-chart-card" style="display:none">
+          <div class="card-title" style="--accent:var(--green)"><span style="color:var(--green)">CHARTS</span> Patient Data</div>
+          <div class="chart-wrap">
+            <div class="chart-title">Severity Distribution</div>
+            <div class="chart-canvas-wrap"><canvas id="sev-chart"></canvas></div>
+          </div>
+          <div class="chart-wrap">
+            <div class="chart-title">Arrival Time vs Treatment Time</div>
+            <div class="chart-canvas-wrap"><canvas id="arr-chart"></canvas></div>
+          </div>
+        </div>
+
+        <!-- HEATMAP -->
+        <div class="card">
+          <div class="card-title" style="--accent:var(--red)"><span style="color:var(--red)">HEATMAP</span> Risk per Patient</div>
+          <div id="heatmap"></div>
+        </div>
+
+        <!-- TABLE -->
+        <div class="card">
+          <div class="card-title" style="--accent:var(--green)"><span style="color:var(--green)">TABLE</span> Treatment Schedule</div>
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr><th>#</th><th>Patient ID</th><th>Name</th><th>Doctor</th><th>Start</th><th>End</th><th>Wait</th><th>Risk</th><th>Spec</th></tr></thead>
+              <tbody id="sched-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- EXPORT TAB -->
+    <div id="p-export" class="hidden">
+      <div class="card">
+        <div class="card-title"><span style="color:var(--purple)">JSON</span> submission.json</div>
+        <div class="empty hidden" id="empty-json"><div class="ei">📄</div><h3>Run schedule first</h3><p>Add patients and run SmartTriage to generate output</p></div>
+        <div id="json-wrap" class="hidden">
+          <div id="risk-mismatch-warn" class="hidden"></div>
+          <div class="json-out" id="json-out"></div>
+          <div class="action-bar">
+            <button class="btn btn-accent" onclick="dlJSON()">⬇️ Download submission.json</button>
+            <button class="btn btn-ghost" onclick="copyJSON()">📋 Copy JSON</button>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span style="color:var(--green)">REPORT</span> Full Schedule Report (JSON)</div>
+        <div class="empty hidden" id="empty-report"><div class="ei">📊</div><h3>Run schedule first</h3><p>Detailed report with patient info, wait times, risk breakdown and doctor assignments</p></div>
+        <div id="report-wrap" class="hidden">
+          <div class="json-out" id="report-out"></div>
+          <div class="action-bar">
+            <button class="btn btn-green" onclick="dlReport()">⬇️ Download Report JSON</button>
+            <button class="btn btn-ghost" onclick="copyReport()">📋 Copy</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- PROFILE PANEL -->
+<div class="profile-overlay" id="profile-overlay" onclick="closeProfile()"></div>
+<div class="profile-panel" id="profile-panel">
+  <div class="profile-header"><h2>👤 Staff Profile</h2><button class="profile-close" onclick="closeProfile()">✕</button></div>
+  <div class="profile-body">
+    <div class="profile-hero">
+      <div class="profile-avatar-lg" id="p-avatar-lg"><div class="online-ring"></div></div>
+      <div class="profile-full-name" id="p-full-name">—</div>
+      <div class="profile-role-badge" id="p-role-badge"></div>
+      <div class="profile-dept" id="p-dept"></div>
+    </div>
+    <div class="profile-stats">
+      <div class="ps-item"><div class="ps-num" id="ps-pts">0</div><div class="ps-lbl">Patients</div></div>
+      <div class="ps-item"><div class="ps-num" id="ps-sched">0</div><div class="ps-lbl">Schedules</div></div>
+      <div class="ps-item"><div class="ps-num" id="ps-risk">—</div><div class="ps-lbl">Last Risk</div></div>
+    </div>
+    <div class="profile-info-list" id="p-info-list"></div>
+    <button class="profile-edit-btn" onclick="showEditProfile()">✏️ Edit Profile</button>
+    <button class="profile-logout-btn" onclick="doLogout()">⬑ Sign Out</button>
+  </div>
+</div>
+
+<!-- EDIT PROFILE MODAL -->
+<div id="edit-profile-modal" class="hidden">
+  <div class="modal-overlay" onclick="closeEditProfile()">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal-title"><span>✏️ Edit Profile</span><button class="modal-close" onclick="closeEditProfile()">✕</button></div>
+      <div class="modal-grid">
+        <div class="fg"><label>First Name</label><input id="ep-fname"></div>
+        <div class="fg"><label>Last Name</label><input id="ep-lname"></div>
+        <div class="fg"><label>Role</label>
+          <select id="ep-role"><option>Attending Physician</option><option>Emergency Medicine Resident</option><option>Triage Nurse</option><option>Charge Nurse</option><option>ER Department Head</option><option>Medical Director</option><option>Hospitalist</option></select>
+        </div>
+        <div class="fg"><label>Department</label>
+          <select id="ep-dept"><option>Emergency Medicine</option><option>Trauma Surgery</option><option>Cardiology</option><option>General Surgery</option><option>Pediatrics</option><option>Internal Medicine</option><option>Critical Care</option></select>
+        </div>
+        <div class="fg"><label>Hospital</label><input id="ep-hospital"></div>
+        <div class="fg"><label>Staff ID</label><input id="ep-staffid"></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost btn-sm" onclick="closeEditProfile()">Cancel</button>
+        <button class="btn btn-accent" onclick="saveProfileEdit()">💾 Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toasts"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
